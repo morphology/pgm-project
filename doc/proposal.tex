@@ -8,45 +8,33 @@
 
 
 \author{
-Coauthor \\
-Affiliation \\
-Address \\
-\texttt{email} \\
+Victor Chahuneau\\
+\texttt{vchahune@cs.cmu.edu}
 \And
-Coauthor \\
-Affiliation \\
-Address \\
-\texttt{email} \\
+Phani Gadde\\
+\texttt{pgadde@cs.cmu.edu} \\
 \And
-Coauthor \\
-Affiliation \\
-Address \\
-\texttt{email}
+Peter Schulam\\
+\texttt{pschulam@cs.cmu.edu}
 }
 
 \nipsfinalcopy
 
 \begin{document}
 
-
 \maketitle
 
-\begin{abstract}
-    TODO
-\end{abstract}
-
 \section{Introduction}
-Project idea. This should be approximately two paragraphs.
+Building accurate morphological analyzers is a time-consuming task, which requires linguistic knowledge and abilities to formalize morphological phenomena into finite-state rules. This approach has been successful for modeling several European languages, but most languages lack such resources. Unsupervised methods are therefore an interesting alternative that has been extensively explored  and several approaches -- mostly based on information-theoretic criteria (MDL) -- have been proposed to solve this problem. Recently, probabilistic models making use of non-parametric Bayesian techniques have shown competitive performance.
 
-Prior work: \cite{goldwater2011} \cite{dreyer2011} \cite{lee2011}
+In particular, Goldwater \& al. \cite{goldwater2011} propose a baseline model for modeling types and tokens in morphological induction. Lee \& al. \cite{lee2011} suggest an extension which takes context into account, while Dreyer \& Eisner \cite{dreyer2011} add structure by encoding morphological phenomena into paradigms that are tied to grammatical functions, but evaluate their model in a semi-supervised setting.
 
 \section{Datasets}
-Dataset (this can include crawling websites for real-world data)
-
-See Morpho Challenge\footnote{\url{http://research.ics.aalto.fi/events/morphochallenge/}}, Czech/Arabic/Korean treebanks.
+Training unsupervised models only requires monolingual corpora, which are easily available for a large variety of morphologically rich languages. Evaluation, however, has to be done on analyzed data, and we plan to use the following standard datasets: English, Finnish, German and Turkish corpora from the Morpho Challenge\footnote{\url{http://research.ics.aalto.fi/events/morphochallenge2010/datasets.shtml}}, and the Arabic\footnote{\url{http://www.ircs.upenn.edu/arabic/}}, Czech\footnote{\url{http://ufal.mff.cuni.cz/pcedt2.0/}} and Korean\footnote{\url{http://www.cis.upenn.edu/~xtag/koreantag/}} treebanks, which contain morphological annotations.
 
 \section{Implementation}
 Software you will need to write.
+Development will be done here: \url{https://github.com/vchahun/pgm-project}
 
 \section{Planning}
 Midterm milestone: What will you complete by the midterm? Experimental results of some kind are expected here. You should also describe what portion of the project each teammate will be doing.
