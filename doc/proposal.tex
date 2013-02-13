@@ -25,19 +25,26 @@ Peter Schulam\\
 \maketitle
 
 \section{Introduction}
-Building accurate morphological analyzers is a time-consuming task, which requires linguistic knowledge and abilities to formalize morphological phenomena into finite-state rules. This approach has been successful for modeling several European languages, but most languages lack such resources. Unsupervised methods are therefore an interesting alternative that has been extensively explored  and several approaches -- mostly based on information-theoretic criteria (MDL) -- have been proposed to solve this problem. Recently, probabilistic models making use of non-parametric Bayesian techniques have shown competitive performance.
+Building accurate morphological analyzers is a time-consuming task, which requires linguistic knowledge and abilities to formalize morphological phenomena into finite-state rules. This approach has been successful for several European languages, but the majority of languages still lack such resources. Unsupervised methods are therefore an interesting alternative that has been extensively explored  and several approaches -- mostly based on information-theoretic criteria (MDL) -- have been proposed to solve this problem. Recently, probabilistic models making use of non-parametric Bayesian techniques have shown competitive performance.
 
 In particular, Goldwater \& al. \cite{goldwater2011} propose a baseline model for modeling types and tokens in morphological induction. Lee \& al. \cite{lee2011} suggest an extension which takes context into account, while Dreyer \& Eisner \cite{dreyer2011} add structure by encoding morphological phenomena into paradigms that are tied to grammatical functions, but evaluate their model in a semi-supervised setting.
 
 \section{Datasets}
-Training unsupervised models only requires monolingual corpora, which are easily available for a large variety of morphologically rich languages. Evaluation, however, has to be done on analyzed data, and we plan to use the following standard datasets: English, Finnish, German and Turkish corpora from the Morpho Challenge\footnote{\url{http://research.ics.aalto.fi/events/morphochallenge2010/datasets.shtml}}, and the Arabic\footnote{\url{http://www.ircs.upenn.edu/arabic/}}, Czech\footnote{\url{http://ufal.mff.cuni.cz/pcedt2.0/}} and Korean\footnote{\url{http://www.cis.upenn.edu/~xtag/koreantag/}} treebanks, which contain morphological annotations.
+Training unsupervised models only requires monolingual corpora, which are easily available for a large variety of morphologically rich languages. Evaluation, however, has to be done on analyzed data, and we plan to use the following standard datasets: English, Finnish, German and Turkish corpora from the Morpho Challenge\footnote{\url{http://research.ics.aalto.fi/events/morphochallenge2010/datasets.shtml}}, and the Arabic\footnote{\url{http://www.ircs.upenn.edu/arabic/}}, Czech\footnote{\url{http://ufal.mff.cuni.cz/pcedt2.0/}} and Korean\footnote{\url{http://www.cis.upenn.edu/~xtag/koreantag/}} treebanks, which contain morphological annotations. Additionaly, we plan to induce latent syntactic categories for words as part of our model, and we can evaluate this on POS tagged data.
 
 \section{Implementation}
-Software you will need to write.
-Development will be done here: \url{https://github.com/vchahun/pgm-project}
+We will write software to train models and evaluate them on various types of datasets. We plan to develop general-purpose modules for describing probability distributions and sampling methods that should allow us to try several model configurations based on these elementary building blocks. Development will be done mostly using a shared public git repository: \url{https://github.com/vchahun/pgm-project}
 
 \section{Planning}
-Midterm milestone: What will you complete by the midterm? Experimental results of some kind are expected here. You should also describe what portion of the project each teammate will be doing.
+By the midterm, we should have implemented and evaluated a baseline system similar to \cite{goldwater2011}. We should also have started exploring ways to improve this baseline by adding contextual information, structured paradigms, agreement constraints, etc.
+Tasks that can be split between the members of the team are:
+\begin{itemize}
+  \item Implement and train the baseline system
+  \item Compare choices of distributions in the lexicon model
+  \item Prepare evaluation scripts for the various datasets in several languages
+  \item Analyze errors made by the baseline on a development corpus
+  \item Explore block sampling techniques to speed up the inference
+\end{itemize}
 
 \bibliographystyle{plain}
 \bibliography{bibliography}
