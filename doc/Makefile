@@ -3,3 +3,8 @@ proposal.pdf: proposal.tex bibliography.bib
 
 clean:
 	rm -f proposal.{aux,log,bbl,blg}
+
+spotless: clean
+	rm -f proposal.pdf
+
+.PHONY: clean spotless
