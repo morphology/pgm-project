@@ -44,12 +44,22 @@ structure by encoding morphological phenomena into paradigms that are
 tied to grammatical functions, but evaluate their model in a
 semi-supervised setting.
 
+\section{Scope}
+\label{sec:scope}
+
 Broadly, our goal is to develop new models of morphology that merge
 the attractive ideas that have been presented in the papers listed
 above. For example, the idea of using syntactic context to help model
 morphological inflection is attractive from a linguistic standpoint,
 but we believe that we can improve upon the modeling decisions made by
-\cite{lee2011}. Also, \cite{dreyer2011} attempt to model morphological
+\cite{lee2011}. In particular, \cite{lee2011} use geometric
+distributions over the length of a morpheme to model the probability
+of a language's lexicon. We do not agree with this modeling decision
+since the geometric distribution does not take the morpheme itself
+into account. We hope to implement a more linguistically sound model
+of the lexicon, but still incorporate models of syntactic context.
+
+Also, \cite{dreyer2011} attempt to model morphological
 paradigms, which is again linguistically attractive. An issue,
 however, is that distributions over string-valued random variables
 within morphological paradigms are modeled using weighted finite state
