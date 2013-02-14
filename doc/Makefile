@@ -1,3 +1,5 @@
+SHELL=/bin/bash
+
 proposal.pdf: proposal.tex bibliography.bib
 	pdflatex proposal.tex && bibtex proposal && pdflatex proposal.tex && pdflatex proposal.tex
 
