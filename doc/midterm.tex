@@ -1,0 +1,73 @@
+\documentclass{article}
+
+\usepackage{nips12submit_e}
+\usepackage{times}
+\usepackage{url}
+
+\title{Unsupervised morphology induction}
+
+\author{
+Victor Chahuneau\\
+\texttt{vchahune@cs.cmu.edu}
+\And
+Phani Gadde\\
+\texttt{pgadde@cs.cmu.edu} \\
+\And
+Peter Schulam\\
+\texttt{pschulam@cs.cmu.edu}
+}
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+\label{sec:introduction}
+
+Building accurate morphological analyzers is a time-consuming task,
+which requires linguistic knowledge and abilities to formalize
+morphological phenomena into finite-state rules. This approach has
+been successful for several European languages, but the majority of
+languages still lack such resources. Unsupervised methods are
+therefore an interesting alternative that has been extensively
+explored and several approaches -- mostly based on
+information-theoretic criteria (MDL) -- have been proposed to solve
+this problem. Recently, probabilistic models making use of
+non-parametric Bayesian techniques have shown competitive performance.
+
+In particular, Goldwater \& al. \cite{goldwater2011} propose a
+baseline model for modeling types and tokens in morphological
+induction. Lee \& al. \cite{lee2011} suggest an extension which takes
+context into account, while Dreyer \& Eisner \cite{dreyer2011} add
+structure by encoding morphological phenomena into paradigms that are
+tied to grammatical functions, but evaluate their model in a
+semi-supervised setting.
+
+Unsupervised morphological analysis is typically done using complex
+nonparametric Bayesian models. Deriving the posterior distribution
+over quantities of interest (such as the stem lexicon of a language)
+can yield complex mathematical expressions which are difficult to
+compute. In some applications of Bayesian statistical modeling, it is
+acceptable to run samplers for a long time in order to compute a
+useful result, but in natural language processing, and, more
+specifically, morphological analysis, the amount of data that must be
+processed is often large. Furthermore, as morphological analysis is
+typically a step used to preprocess tokens in a document before
+applying other types of linguistic analysis, it is not
+
+\section{Related Work}
+\label{sec:related-work}
+
+\section{Proposed Method}
+\label{sec:proposed-method}
+
+\section{Experiments}
+\label{sec:experiments}
+
+\section{Conclusion}
+\label{sec:conclusion}
+
+\bibliographystyle{plain}
+\bibliography{bibliography}
+
+\end{document}
