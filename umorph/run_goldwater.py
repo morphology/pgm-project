@@ -2,6 +2,7 @@
 import logging
 import math
 import sys
+import time
 from vpyp.corpus import Vocabulary
 from golwater import pyp, LexiconModel, word_splits
 
@@ -53,7 +54,11 @@ def main():
             word_vocabulary, stem_vocabulary, suffix_vocabulary), d, theta)
 
     # Run the Gibbs sampler
+    t_start = time.time()
     run_sampler(model, corpus, n_iter)
+    t_end = time.time()
+    runtime = t_end - t_start
+    print('Sampler ran for {:.3f} seconds'.format(runtime))
 
     # Print out the most likely analysis for each word in the vocabulary
     show_analyses(model.base)
