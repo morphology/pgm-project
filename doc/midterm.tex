@@ -1,10 +1,12 @@
 \documentclass{article}
 
+\usepackage{amsmath,amssymb}
+\usepackage{enumerate}
 \usepackage{nips12submit_e}
 \usepackage{times}
 \usepackage{url}
 
-\title{Unsupervised morphology induction}
+\title{Faster Unsupervised Morphology Induction}
 
 \author{
 Victor Chahuneau\\
@@ -53,10 +55,119 @@ useful result, but in natural language processing, and, more
 specifically, morphological analysis, the amount of data that must be
 processed is often large. Furthermore, as morphological analysis is
 typically a step used to preprocess tokens in a document before
-applying other types of linguistic analysis, it is not
+applying other types of linguistic analysis, it is not a process on
+which we would like to spend too much time.
+
+Crude morphological analysis tools such as the Porter Stemmer are easy
+to implement and computationally inexpensive, and thus have been
+successful in areas such as information retrieval where we need to
+quickly ``analyze'' billions of tokens. Recent Bayesian morphological
+models are more linguistically sophisticated, and could potentially
+provide more accurate stemming information. Real world application of
+these models is not realistic, however, due to the long running time
+required when using MCMC methods for inference. Our project aims to
+integrate recent advances in speeding up MCMC computation into one of
+the fundamental Bayesian morphological models. Our goals are to:
+
+\begin{enumerate}[1.]
+\item Reparameterize the model proposed in \cite{goldwater2011} so
+  that inference can be distributed.
+\item Implement the reparameterization.
+\item Evaluate timing and performance differences between original
+  model and our reparameterization.
+\end{enumerate}
 
 \section{Related Work}
 \label{sec:related-work}
+
+\subsection{Parallel Markov Chain Monte Carlo for Dirichlet Process Mixtures}
+\label{sec:parallel-mcmc-for-dpm}
+
+\cite{lovell2012} propose a reparameterization of Dirichlet Process
+mixture models that allows MCMC inference schemes to be split across
+multiple machines. The high-level strategy is to form
+``superclusters'' of latent variable labels so that latent variables
+for each data point $x_i$ within a supercluster are conditionally
+independent of other data points given the supercluster
+assignments. This allows the most expensive piece of the computation
+(sampling the posterior distribution over latent labels) to be
+performed in parallel within each supercluster. We review their
+contribution as we derive our reparameterization of
+\cite{goldwater2011} from it.
+
+\cite{lovell2012} define the following generative process, which, as
+we will show, defines the same target distribution as an unmodified
+Dirichlet process with concentration parameter $\alpha$ and base
+distribution $H$. We begin by drawing a sample $\boldsymbol{\mu}$ from
+a distribution over the $K$ dimensional simplex, where $K$ is the
+number of superclusters that we would like in our model. Functionally,
+this defines the number of compute nodes over which we would like to
+distribute our computation. We now draw another vector
+$\boldsymbol{\gamma}$ from the $K$ dimensional simplex, but now draw
+from the Dirichlet distribution with parameters $\alpha \mu_1, \ldots,
+\alpha \mu_K$. We know draw $K$ random distributions from $K$
+independent Dirichlet processes with the base measure $H$. Each of the
+Dirichlet processes has concentration parameter $\alpha \mu_i$ where
+$i \in \{1, \ldots, K\}$. Finally, we form a distribution $G$ by
+mixing $G_1, \ldots, G_k$ with weights $\gamma_1, \ldots,
+\gamma_K$. The full generative process is as follows:
+
+\begin{align*}
+  \mu_1, \ldots, \mu_K &\sim Dirichlet(\tau) \\
+  \gamma_1, \ldots, \gamma_K &\sim Dirichlet(\alpha \mu_1, \ldots, \alpha \mu_K) \\
+  G_i &\sim DP(\alpha \mu_i, H) \text{ for } i \in \{1, \ldots, K\} \\
+  G &= \sum_{i=1}^K \gamma_i G_i
+\end{align*}
+
+They authors of \cite{lovell2012} note that the procedure defined
+above results in $G \sim DP(\alpha, H)$. The key property of this
+reparameterization of the Dirichlet process is that the standard
+Chinese Restaurant Process gets reformulated as a two-stage process in
+which a new data point first chooses which restaurant it will eat at,
+and then chooses a table based on where other customers of that
+restaurant are seated.
+
+We now go through the mathematics of the process in more detail. We
+follow the original paper, using $z_n$ to denote the table chosen by
+the $n$th data point where $n$ ranges from $\{1, \ldots, N\}$. We let
+$j \in \mathbb{N}$ uniquely index the tables across \textit{all}
+restaurants, and $s_j = i$ be the supercluster or restaurant in which
+the $j$th table is located. We can then express the probability that a
+customer chooses restaurant $i$ given $\alpha$ as
+
+\begin{align}
+  Pr(s_{z_n} = i | \{z_{n^\prime}\}_{n^{\prime}=1}^{n-1}, \alpha)
+  &= \frac{\alpha \mu_i + \sum_{n^\prime = 1}^{n-1} \mathbb{I}(s_{z_{n^\prime}} = i)}{\alpha + n - 1}
+\end{align}
+
+This is simply the predictive probability of restaurant $i$ under the
+Dirichlet multinomial with prior $Dir(\alpha\boldsymbol{\mu})$. Once a
+customer has chosen restaurant $i$, then she chooses a table within
+the restaurant according to a local Chinese Restaurant Process
+
+\begin{align}
+  P(z_n = j, 1 \le j \le \#tables(i) | \{z_{n^\prime}\}_{n^{\prime}=1}^{n-1}, \alpha, s_j = i)
+  &= \frac{\sum_{n^\prime = 1}^{n-1} \mathbb{I}(s_{z_{n^\prime}} = i, z_{n^\prime} = j)}
+          {\alpha \mu_i + \sum_{n^\prime = 1}^{n-1} \mathbb{I}(s_{z_{n^\prime}} = i)} \\
+  P(z_n = j, j = \#tables(i) + 1 | \{z_{n^\prime}\}_{n^{\prime}=1}^{n-1}, \alpha, s_j = i)
+  &= \frac{\alpha \mu_i}{\alpha \mu_i + \sum_{n^\prime = 1}^{n-1} \mathbb{I}(s_{z_{n^\prime}} = i)}
+\end{align}
+
+The key property of the expressions above that allow us to parallelize
+the MCMC inference algorithm is that the probability of a customer
+sitting at a table $j$ conditioned on the restaurant $i$ is
+independent of all customers that are not seated at that restaurant
+(since the sums in both the numerator and denominator in the first
+expression and the denominator in the second expression do not count
+$s_{z_{n^\prime}} \neq i$). Therefore, when resampling seating
+arrangements, which is often the most computationally intensive aspect
+of MCMC in Dirichlet process mixture models, we can reseat customers
+in each restaurant on different compute nodes.
+
+\subsection{Transition Operators}
+\label{sec:parallel-transition-operators}
+
+
 
 \section{Proposed Method}
 \label{sec:proposed-method}
