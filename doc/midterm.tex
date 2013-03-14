@@ -211,8 +211,22 @@ to each restaurant (i.e. the supercluster assignments). This allows us
 to then rewrite the posterior over $\alpha$ as
 
 \begin{align}
-  p(\alpha | \{z_n\}_{n=1}^N) \propto p(\alpha) \frac{\Gamma(\alpha)}{\Gamma(N + \alpha)} \alpha^{\sum_{i=1}^K J_i \prod_{i=1}^K \mu_i^{J_i}
+  p(\alpha | \{z_n\}_{n=1}^N) \propto p(\alpha) \frac{\Gamma(\alpha)}{\Gamma(N + \alpha)} \alpha^{\sum_{i=1}^K J_i \prod_{i=1}^K \mu_i^{J_i}}
 \end{align}
+
+Resampling the seating assignments $z_n$ given the restaurant
+assignments $s_j$, model-specific parameters $\theta_j$, and
+concentration $\alpha$ can be done exactly as it is done in the
+standard Chinese Restaurant Process. The primary difference, as
+explained above, is that the distribution over tables for a particular
+customer given the restaurant assignment is independent of all
+customers that are not eating at that restaurant. This allows us to do
+sampling for each restaurant in parallel, which can significantly
+speed up inference. \cite{lovell2012} also note that since each local
+CRP is no different from standard CRP sampling, techniques used to
+improve sampling speed for standard CRPs (e.g. \cite{neal2000},
+\cite{walker2007}, and \cite{papaspiliopoulos2008}) can be applied to
+get further gains in speed.
 
 \section{Proposed Method}
 \label{sec:proposed-method}
