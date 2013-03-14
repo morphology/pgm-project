@@ -3,3 +3,4 @@
 *.bbl
 *.blg
 *.pyc
+doc/*.pdf
