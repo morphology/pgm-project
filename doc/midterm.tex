@@ -167,7 +167,52 @@ in each restaurant on different compute nodes.
 \subsection{Transition Operators}
 \label{sec:parallel-transition-operators}
 
+Following \cite{lovell2012}, we define the following relevant counts
 
+\begin{align*}
+  \#i = \sum_{n=1}^N \mathbb{I}(s_{z_n} = i),\text{ }
+  \#j = \sum_{n=1}^N \mathbb{I}(z_n = j),\text{ }
+  J_i = \sum_{j=1}^\infty \mathbb{I}(\#k > 0, s_j = i)
+\end{align*}
+
+We now discuss the distributions from which each variable in the model
+described above can be sampled. This includes $\alpha$ (the
+concentration parameter of the primary Dirichlet process), $z_n$ (the
+seating arrangements of the customers), and $s_j$ (the restaurant
+assignment for each cluster $j$). Note that we do not discuss the
+model parameters $\theta_j$ for each cluster $j$. \cite{lovell2012} do
+not devote much attention to this and briefly mention that this is
+model specific, but can sometimes be done in parallel. For our model
+of morphology, however, this is not the case. Indeed, the models of
+morphology that we use require global knowledge of the current
+analysis for types in the corpus. We therefore put discussion of the
+model-specific parameters off until the next section.
+
+The first parameter we can resample is the concentration
+$\alpha$. This should be resampled conditioned on the seating
+arrangements $\{z_n\}_{n=1}^N$. Assuming a prior $\pi(\alpha)$, the
+posterior over $\alpha$ is
+
+\begin{align}
+  p(\alpha | \{z_n\}_{n=1}^N) \propto p(\alpha) p(\{z_n\}_{n=1}^N | \alpha)
+\end{align}
+
+\cite{lovell2012} show that the likelihood of the seating arrangements
+and the cluster assignments to restaurants can be expressed as
+
+\begin{align}
+  P(\{z_n\}_{n=1}^N, \{s_j\}_{j=1}^\infty | \alpha) &=
+  \frac{\Gamma(\alpha)}{\Gamma(N + \alpha)} \alpha^{\sum_{i=1}^K J_i \prod_{i=1}^K \mu_i^{J_i}}
+\end{align}
+
+which is simply the marginal Chinese Restaurant Process multipled by
+an additional factor that accounts for how the clusters are assigned
+to each restaurant (i.e. the supercluster assignments). This allows us
+to then rewrite the posterior over $\alpha$ as
+
+\begin{align}
+  p(\alpha | \{z_n\}_{n=1}^N) \propto p(\alpha) \frac{\Gamma(\alpha)}{\Gamma(N + \alpha)} \alpha^{\sum_{i=1}^K J_i \prod_{i=1}^K \mu_i^{J_i}
+\end{align}
 
 \section{Proposed Method}
 \label{sec:proposed-method}
