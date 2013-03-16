@@ -109,17 +109,17 @@ allocations are amalgamated in the synchronization step that follows the
 distributed Gibbs steps. These approaches, by construction, optimize an 
 approximation of the desired objective and hence are less preferred.
 
-\cite{lovell2012parallel,williamsonparallel} proposed exact inference methods
+\cite{lovell2012,williamsonparallel} proposed exact inference methods
 for parallelizing DP mixture models. Williamson et. al \cite{williamsonparallel}
  use the fact that for appropriate parameter settings, Dirichlet mixtures of
 Dirichlet processes are Dirichlet processes. They perform MCMC for an equivalent
-equilibrium distribution from $P$ distributed DPs. Lovell et. al \cite{lovell2012parallel}
+equilibrium distribution from $P$ distributed DPs. Lovell et. al \cite{lovell2012}
  reparameterize the DP to induce conditional independencies between the 
 distributed DPs. We use a similar reparameterization for our morphology
 model thereby parallelizing the inference without approximations.
 
 Our contributions in this paper are reparameterizing the baseline model
- from \cite{goldwater2011} following \cite{lovell2012parallel} and 
+ from \cite{goldwater2011} following \cite{lovell2012} and 
 implementing it using a parallel architecture on a single core.
 
 \section{Related Work}
