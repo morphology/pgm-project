@@ -24,7 +24,6 @@ Peter Schulam\\
 \maketitle
 
 \section{Introduction}
-\label{sec:introduction}
 
 Building accurate morphological analyzers is a time-consuming task,
 which requires linguistic knowledge and abilities to formalize
@@ -76,6 +75,52 @@ the fundamental Bayesian morphological models. Our goals are to:
 \item Evaluate timing and performance differences between original
   model and our reparameterization.
 \end{enumerate}
+
+\section{More focused intro}
+
+Our baseline is the model proposed in \cite{goldwater2011} where the 
+generator distribution is a joint on the inflectional classes, stems 
+and affixes. The adaptor is the PYCRP in which each customer represents 
+a word token and each table is labeled with a lexical item. The sampling 
+process involves doing the following two steps iteratively.
+
+\begin{enumerate}[1.]
+\item Sampling a new morph analysis for the label on each table,
+fixing the assignment of words to tables
+\item Re-assigning each word to a new table, fixing the morph analyses
+\end{enumerate}
+
+Step 2 above iterates through every word token in the corpus and computes
+the distribution over table assignments for that token conditioning on 
+the table assignments for all the other tokens. Since we need know the 
+table assignments for all the words to sample a table for each word, this
+step cannot be done in parallel with a simple partitioning of data points. 
+At the same time, this is the most time consuming task in the sampling. 
+Our goal is to parallelize these two steps to speed-up the inference.
+
+Parallelizing inference is related the conditional independencies in the 
+model. One way to achieve more independencies is by optimizing a variational 
+approximation of the posterior. However, we lose the expressiveness of the 
+model in such cases. \cite{asuncion2008asynchronous} proposed an approximate
+distributed Gibbs sampler for HDP that works on a given set of $P$ processors.
+Each processor updates 1/$P$ cluster allocations and global allocations are 
+used for the observations not stored on any local processor. The cluster
+allocations are amalgamated in the synchronization step that follows the 
+distributed Gibbs steps. These approaches, by construction, optimize an 
+approximation of the desired objective and hence are less preferred.
+
+\cite{lovell2012parallel,williamsonparallel} proposed exact inference methods
+for parallelizing DP mixture models. Williamson et. al \cite{williamsonparallel}
+ use the fact that for appropriate parameter settings, Dirichlet mixtures of
+Dirichlet processes are Dirichlet processes. They perform MCMC for an equivalent
+equilibrium distribution from $P$ distributed DPs. Lovell et. al \cite{lovell2012parallel}
+ reparameterize the DP to induce conditional independencies between the 
+distributed DPs. We use a similar reparameterization for our morphology
+model thereby parallelizing the inference without approximations.
+
+Our contributions in this paper are reparameterizing the baseline model
+ from \cite{goldwater2011} following \cite{lovell2012parallel} and 
+implementing it using a parallel architecture on a single core.
 
 \section{Related Work}
 \label{sec:related-work}
@@ -233,6 +278,139 @@ get further gains in speed.
 
 \section{Experiments}
 \label{sec:experiments}
+
+\subsection{Datasets}
+
+We run the baseline model on the wall street journal (WSJ) news data 
+and a discussion board (DB) data. The WSJ dataset is a standard corpus 
+for which we have the gold standard morph analysis while the DB dataset 
+is chosen because of its typical net-speak characteristics. We see 
+the usual spelling variations and some other board specific morphological
+ changes in the DB dataset. The datasets are preprocessed to tokenize 
+and for stop-word removal. A minimal stop-words 
+list~\footnote{http://www.ranks.nl/resources/stopwords.html} containing 
+the basic function words is used for stop-word removal.
+
+In line with the (morpho-challenge?) conventions, only verbs from WSJ 
+are given as input for the model. Since we don't have Part-of-Speech (POS)
+ tags for the DB dataset, all the words after stop-word removal were 
+given as input for the model. It can be assumed that the input in case of 
+this dataset is both verbs and nouns as most function words are filtered 
+through stop-word removal. This decision affects the quality of output 
+from the model for the DB dataset which we'll discuss while doing a 
+qualitative analysis of the model's output.
+
+The input to the model is a sequence of word tokens. We generate this 
+from both the datasets by going through each sentence and printing verbs 
+in case of WSJ and non-stop-words in case of the DB dataset.
+
+\subsection{Setup}
+
+The Dirichlet hyper-parameters for classes, stems and suffixes 
+$\alpha_{c}$, $\alpha_{t}$, $\alpha_{f}$ are set to 
+$0.5$, $0.001$ and $0.001$ respectively. The parameter $d$ for PYP is set 
+to $0.1$.
+We vary the number of classes from 4 to 9 and run the sampler for 1000 
+iterations. The entire model is run on both the datasets for 10 times 
+for the above settings and the average time taken (seconds) is recorded.
+This average time taken is the measure that we focus on and intend to 
+improve in this work.
+
+\subsection{Model performance}
+
+Sample output from the baseline on the WSJ and DB datasets can be seen 
+in Tables \ref{outputWSJ} and \ref{outputDB} respectively. The number 
+of classes used for these outputs is 6 for WSJ and 8 for DB. The output
+ has class, stem and suffix for each word. Words assigned the same class
+ by the model are showed together in the tables. Average time taken by 
+the model for various classes and datasets can be seen in 
+Table~\ref{timeTable}. Average accuracy over 10 runs for WSJ is given 
+in Table~\ref{accuTable}.
+
+
+\begin{table*}[ht]
+\begin{minipage}[b]{0.5\linewidth}\centering
+\begin{tabular}{lccc}
+\hline
+Word & Class & Stem & Suffix \\
+\hline
+narrowed&3&narrow&ed \\
+adjusted&3&adjust&ed \\
+said&3&sai&d \\
+estimated&3&estimate&d \\
+has&3&ha&s \\
+keeps&3&keep&s \\
+providing & 4 & providing & \\
+were&4&were& \\
+hops&1&h&ops \\ 
+revised&1&revis&ed \\
+devastating&1&devastat&ing\\
+outperforms&1&outperform&s\\
+cover&5&cov&er \\
+voting&5&votin&g \\
+\hline
+ \end{tabular}
+\caption{\label{outputWSJ} Sample output from WSJ}
+\end{minipage}
+\begin{minipage}[b]{0.5\linewidth}\centering
+\begin{tabular}{lccc}
+\hline
+  Word & Class & Stem & Suffix \\
+\hline
+many & 3 & man & y \\
+died & 3 & di & ed \\
+trade & 3 & trade &  \\
+upping & 3 & upp & ing \\
+laughin & 3 & laugh & in \\
+numbers & 3 & number & s \\
+amigos & 0 & amigo & s \\ 
+ref & 0 & ref & \\
+fonzworth & 4 & fonzworth & \\
+ahahahaha & 4 & ahahahaha & \\
+cowboys & 5 & cowboy & s \\
+wastin & 5 & wastin & \\
+accomplished & 7 & accomplished & \\
+datshit & 7 & datshit & \\
+\hline
+ \end{tabular}
+\caption{\label{outputDB} Sample output from DB}
+\end{minipage}
+\end{table*}
+
+\begin{table}[ht]
+\begin{minipage}[b]{0.5\linewidth}\centering
+ \begin{tabular}{lcc}
+  \hline
+  \# Classes & WSJ & DB \\
+  \hline
+  4 & & \\
+  5 & & \\
+  6 & & \\
+  7 & & \\
+  8 & & \\
+  9 & & \\
+  \hline
+ \end{tabular}
+\caption{\label{timeTable}Average time (seconds) taken}
+\end{minipage}
+\begin{minipage}[b]{0.5\linewidth}\centering
+ \begin{tabular}{lc}
+  \hline
+  \# Classes & Average accuracy \\
+  \hline
+  4 & \\
+  5 & \\
+  6 & \\
+  7 & \\
+  8 & \\
+  9 & \\
+  \hline
+ \end{tabular}
+\caption{\label{accuTable}Model accuracy on WSJ}
+\end{minipage}
+\end{table}
+
+\subsection{Qualitative analysis}
 
 \section{Conclusion}
 \label{sec:conclusion}
