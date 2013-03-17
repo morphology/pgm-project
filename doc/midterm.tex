@@ -299,7 +299,79 @@ model, but their work is cast in terms of a ``generator'' (the base
 distribution $H$) and an ``adaptor'' (the process that allows
 observations to be drawn without directly sampling from the the
 generator). In the model of morphology that we have implemented the
-adaptor is a Pitman Yor process.
+adaptor is a Pitman Yor process. The important difference is the
+emphasis on the base distribution $H$. That is, instead of $H$ being a
+simple distribution over Gaussian mean parameters, for example, it is
+actually a relatively sophisticated model of morphology. Therefore, we
+are less interested in the partition of the data in this case (since
+it essentially corresponds to word identities, and those are
+observed), and are instead interested in the parameters of the
+underlying base distribution $H$.
+
+The reparameterization of the DP mixture model presented by
+\cite{lovell2012} proposes a method for parallelizing the resampling
+of seating arrangements, which is often the most expensive set of
+operations in MCMC inference of DP mixture models (since we need to
+reseat each sample in the dataset).
+
+Our current implementation of the model presented in
+\cite{goldwater2011} follows a relatively simple sampling scheme. We
+initially iterate over all raw words in the corpus, sampling a table
+from the CRP. If a word is assigned to an existing table, then we
+simply increment the number of customers at the table and continue. If
+the customer is chosen to start a new table, an analysis of the word
+is sampled and the base model is incremented (i.e. given a class,
+stem, and suffix, the multinomials in the base model $H$ are
+incremented to account for the new observation). After the initial
+iteration, we continue a fixed number of times through the sequence of
+words. At each word, we first remove it from its table (performing any
+table cleanup that is necessary), and then reseat it according to the
+same procedure as explained for the first iteration.
+
+Our current implementation mixes both the table assignment and
+analysis sampling, which makes parallelization difficult if we wish to
+use the reparameterization proposed by \cite{lovell2012}. The sampling
+scheme proposed in \cite{goldwater2011}, however, separates the
+simulation into two distinct steps. They first fix the assignment of
+words to tables, and sample a new morphological analysis for the label
+(word) of each table. In the second step, they fix the morphological
+analyses assigned to tables, and resample the table assignments for
+each word token in the dataset.
+
+This alternative sampling strategy neatly divides the sampling
+procedures for the morphological model $H$ and the CRP, which will
+allow us to reparameterize the model according to the work in
+\cite{lovell2012}, and perform parallel sampling for the second step
+(table assignments).
+
+Concretely, our sampling procedure will be changed to the
+following. During the initial iteration, for each word token $w_n$ we
+sample a supercluster from the Dirichlet multinomial defined by
+$\boldsymbol{\mu}$, $\alpha$, and the previous supercluster
+assignments:
+
+\begin{align}
+  s_{w_n} = i | \boldsymbol{\mu}, \alpha, \{s_{w_m}\}_{m=1}^{n-1} \sim
+  \frac{\alpha \mu_i + \sum_{m=1}^{n-1} \mathbb{I}(s_{w_m} = i)}{\alpha + n - 1}
+\end{align}
+
+Conditioned on the supercluster chosen for the word, we then sample a
+table from a CRP that is local to the supercluster. Since the local
+CRPs allow the table assignments to be drawn independently of all
+words in other superclusters, resampling tables in can be done in
+parallel.
+
+\cite{lovell2012} note that in the case of infinite Gaussian mixture
+models, the parameters of each cluster can be done locally on each
+compute node since the data that the cluster must account for is
+completely present on that machine. In our case, however, we are not
+interested in updating cluster specific parameters, but rather
+parameters of the global morphological model $H$. Although we can
+sample tables in parallel, we will likely need to collect sufficient
+statistics from each cluster and coordinate global updates to $H$ when
+resampling analyses. Designing an efficient and effective method for
+managing these global model updates will be a primary challenge for us
+during the second half of the project.
 
 \section{Experiments}
 \label{sec:experiments}
