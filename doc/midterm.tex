@@ -276,6 +276,31 @@ get further gains in speed.
 \section{Proposed Method}
 \label{sec:proposed-method}
 
+The model described in \cite{goldwater2011} is a Pitman Yor process
+mixture model; a generalization of a Dirichlet process mixture
+model. With this in mind, we can then think of how the
+reparameterization of DP mixture models presented in \cite{lovell2012} can be
+used to reparameterize (and consequently paralellize) the model used
+by \cite{goldwater2011} to perform unsupervised morphological
+analysis.
+
+There is a key difference between the purpose of the DP mixture model
+as presented in \cite{lovell2012} and in \cite{goldwater2011} that
+must be briefly discussed as it makes the reparameterization
+non-trivial. \cite{lovell2012} discuss DP mixture models in the
+context of an infinite mixture over Gaussian densities, where the
+emphasis is not on the base distribution $H$, but rather on the
+partition of the data that is induced by the CRP, and the means
+(and/or variances) of the individual Gaussians that ``explain'' the
+data assigned to the respective cluster.
+
+The work in \cite{goldwater2011} can also be viewed as a DP mixture
+model, but their work is cast in terms of a ``generator'' (the base
+distribution $H$) and an ``adaptor'' (the process that allows
+observations to be drawn without directly sampling from the the
+generator). In the model of morphology that we have implemented the
+adaptor is a Pitman Yor process.
+
 \section{Experiments}
 \label{sec:experiments}
 
