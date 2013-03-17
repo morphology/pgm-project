@@ -6,6 +6,8 @@
 \usepackage{times}
 \usepackage{url}
 
+\nipsfinalcopy
+
 \title{Faster Unsupervised Morphology Induction}
 
 \author{
@@ -279,7 +281,7 @@ get further gains in speed.
 
 \subsection{Datasets}
 
-We run the baseline model on the wall street journal (WSJ) news data 
+We run the baseline model on the Wall Street journal (WSJ) news data 
 and a discussion board (DB) data. The WSJ dataset is a standard corpus 
 for which we have the gold standard morph analysis while the DB dataset 
 is chosen because of its typical net-speak characteristics. We see 
@@ -289,7 +291,7 @@ and for stop-word removal. A minimal stop-words
 list~\footnote{http://www.ranks.nl/resources/stopwords.html} containing 
 the basic function words is used for stop-word removal.
 
-In line with the (morpho-challenge?) conventions, only verbs from WSJ 
+To reproduce the experiments from \cite{goldwater2011}, only verbs from WSJ 
 are given as input for the model. Since we don't have Part-of-Speech (POS)
  tags for the DB dataset, all the words after stop-word removal were 
 given as input for the model. It can be assumed that the input in case of 
