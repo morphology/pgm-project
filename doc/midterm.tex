@@ -5,6 +5,7 @@
 \usepackage{nips12submit_e}
 \usepackage{times}
 \usepackage{url}
+\usepackage{graphicx}
 
 \nipsfinalcopy
 
@@ -85,9 +86,9 @@ a word token and each table is labeled with a lexical item. The sampling
 process involves doing the following two steps iteratively.
 
 \begin{enumerate}[1.]
-\item Sampling a new morph analysis for the label on each table,
+\item Sampling a new morphological analysis for the label on each table,
 fixing the assignment of words to tables
-\item Re-assigning each word to a new table, fixing the morph analyses
+\item Re-assigning each word to a new table, fixing the morphological analyses
 \end{enumerate}
 
 Step 2 above iterates through every word token in the corpus and computes
@@ -276,14 +277,58 @@ get further gains in speed.
 \section{Proposed Method}
 \label{sec:proposed-method}
 
+\subsection{Morphology induction model}
+
+We follow \cite{goldwater2011} in describing a basic model for learning morphological analysis from a corpus of words. The generative story can be divided into two steps: first, generating a lexicon of words by putting together stems and suffixes based on a word class distribution; and secondly, generating sequences of tokens taken from the vocabulary. In more details:
+\begin{enumerate}
+    \item Draw a distribution over classes $\theta_c \sim \text{Dir}(\alpha_c)$
+    \item For each of the $K$ classes, draw stem ($\theta_t$) and suffix ($\theta_f$) distributions from symmetrical Dirichlet priors.
+    \item Create a lexicon by generating $V$ word types in three steps:
+        \begin{enumerate}
+            \item Choose a class $c \sim \theta_c$
+            \item Draw a stem $t \sim \theta_t$ and a possibly empty suffix $f \sim \theta_f$ conditioning on this class
+            \item Create a word by concatenating $w = t+f$
+        \end{enumerate}
+    \item The previous steps define a distribution over word types:
+        $$p(w|G_0) = \sum_{c,t,f} \mathbb{I}(t+f = w) p(c \mid \theta_c) p(t \mid \theta_t^{(c)}) p(f \mid \theta_f^{(c)})$$
+        We now draw an adapted distribution over tokens $G_w \sim \text{PYP}(d, \theta, G_0)$.
+    \item Finally, each of the $K$ tokens of the corpus is drawn independently from this distribution: $w \sim G_w$
+\end{enumerate}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.5\textwidth]{fig/graph-model}
+\caption{Baseline model}
+\label{fig:graph-model}
+\end{figure}
+
+This baseline generative process is summarized in plate notation in Figure~\ref{fig:graph-model}. Note that, although this breakdown of morphology into stem and suffixes is reasonable for English, it is too simplistic for languages with richer morphology. We therefore intend to substitute the morpheme generation process with the following:
+\begin{enumerate}
+    \item Choose a class from a similar multinomial distribution with a Dirichlet prior
+    \item Generate a stem conditioning on the class
+    \item Choose a number of inflectional morphemes given a Poisson distribution specific to the class
+    \item Generate a sequence of inflectional morphemes, either independently from a single multinomial or from a sequence model
+\end{enumerate}
+
+\subsection{Evaluation method}
+
+We are not as interested in the final parameter values infered as much as in the analyses produced for each word. We could measure the perplexity of the model on held-out data, but we prefer to focus on the core goal of the project and evaluate the stemming or segmentation accuracy.
+
+XXXXXXXXXXXXXXXXXXXXXXXXX TODO XXXXXXXXXXXXXXXXXXXXXXXXX
+\begin{enumerate}
+    \item splitting accuracy
+    \item stemming accuracy (ability to map different variants to same word - precision/recall?)
+\end{enumerate}
+
 \section{Experiments}
 \label{sec:experiments}
 
+
 \subsection{Datasets}
 
-We run the baseline model on the Wall Street journal (WSJ) news data 
+We run the baseline model on the Wall Street Journal (WSJ) news data extracted from the Penn Treebank
 and a discussion board (DB) data. The WSJ dataset is a standard corpus 
-for which we have the gold standard morph analysis while the DB dataset 
+for which we have the gold standard morphological analysis while the DB dataset 
 is chosen because of its typical net-speak characteristics. We see 
 the usual spelling variations and some other board specific morphological
  changes in the DB dataset. The datasets are preprocessed to tokenize 
@@ -308,8 +353,8 @@ in case of WSJ and non-stop-words in case of the DB dataset.
 
 The Dirichlet hyper-parameters for classes, stems and suffixes 
 $\alpha_{c}$, $\alpha_{t}$, $\alpha_{f}$ are set to 
-$0.5$, $0.001$ and $0.001$ respectively. The parameter $d$ for PYP is set 
-to $0.1$.
+$0.5$, $0.001$ and $0.001$ respectively. The discount parameter $d$ for the PYP is set 
+to $0.1$ and the strength $\theta$ close to zero.
 We vary the number of classes from 4 to 9 and run the sampler for 1000 
 iterations. The entire model is run on both the datasets for 10 times 
 for the above settings and the average time taken (seconds) is recorded.
