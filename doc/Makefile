@@ -1,5 +1,7 @@
 SHELL=/bin/bash
 
+all: proposal.pdf midterm.pdf
+
 proposal.pdf: proposal.tex bibliography.bib
 	pdflatex $< && bibtex $(basename $<) && pdflatex $< && pdflatex $<
 
