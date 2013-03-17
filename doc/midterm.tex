@@ -6,6 +6,8 @@
 \usepackage{times}
 \usepackage{url}
 \usepackage{graphicx}
+\usepackage{verbatim}
+\usepackage{multirow}
 
 \nipsfinalcopy
 
@@ -121,7 +123,7 @@ model thereby parallelizing the inference without approximations.
 
 Our contributions in this paper are reparameterizing the baseline model
  from \cite{goldwater2011} following \cite{lovell2012} and 
-implementing it using a parallel architecture on a single core.
+implementing it using a parallel architecture on a single machine.
 
 \section{Related Work}
 \label{sec:related-work}
@@ -436,6 +438,7 @@ during the second half of the project.
 \section{Experiments}
 \label{sec:experiments}
 
+Experiments with the baseline model are reported in this section.
 
 \subsection{Datasets}
 
@@ -453,14 +456,16 @@ To reproduce the experiments from \cite{goldwater2011}, only verbs from WSJ
 are given as input for the model. Since we don't have Part-of-Speech (POS)
  tags for the DB dataset, all the words after stop-word removal were 
 given as input for the model. It can be assumed that the input in case of 
-this dataset is both verbs and nouns as most function words are filtered 
+this dataset is primarily verbs and nouns as most function words are filtered 
 through stop-word removal. This decision affects the quality of output 
 from the model for the DB dataset which we'll discuss while doing a 
 qualitative analysis of the model's output.
 
 The input to the model is a sequence of word tokens. We generate this 
 from both the datasets by going through each sentence and printing verbs 
-in case of WSJ and non-stop-words in case of the DB dataset.
+in case of WSJ and non-stop-words in case of the DB dataset. After the 
+preprocessing the WSJ dataset has 7156 types and 113549 tokens while the 
+DB dataset has 15583 types and 110347 tokens.
 
 \subsection{Setup}
 
@@ -474,6 +479,17 @@ for the above settings and the average time taken (seconds) is recorded.
 This average time taken is the measure that we focus on and intend to 
 improve in this work.
 
+\begin{figure*}[ht]
+\begin{minipage}[b]{0.5\linewidth}\centering
+\includegraphics[scale=0.25]{fig/time}
+\caption{\label{timeFig}Time taken}
+\end{minipage}
+\begin{minipage}[b]{0.5\linewidth}\centering
+\includegraphics[scale=0.25]{fig/accu}
+\caption{\label{accuFig}Accuracy on WSJ}
+\end{minipage}
+\end{figure*}
+
 \subsection{Model performance}
 
 Sample output from the baseline on the WSJ and DB datasets can be seen 
@@ -482,8 +498,9 @@ of classes used for these outputs is 6 for WSJ and 8 for DB. The output
  has class, stem and suffix for each word. Words assigned the same class
  by the model are showed together in the tables. Average time taken by 
 the model for various classes and datasets can be seen in 
-Table~\ref{timeTable}. Average accuracy over 10 runs for WSJ is given 
-in Table~\ref{accuTable}.
+Figure~\ref{timeFig}. Average accuracy over 10 runs for the WSJ dataset 
+ is given in Figure~\ref{accuFig}. The error bars represent the standard
+ deviation in both the figures.
 
 
 \begin{table*}[ht]
@@ -535,6 +552,8 @@ datshit & 7 & datshit & \\
 \end{minipage}
 \end{table*}
 
+
+\begin{comment}
 \begin{table}[ht]
 \begin{minipage}[b]{0.5\linewidth}\centering
  \begin{tabular}{lcc}
@@ -567,8 +586,7 @@ datshit & 7 & datshit & \\
 \caption{\label{accuTable}Model accuracy on WSJ}
 \end{minipage}
 \end{table}
-
-\subsection{Qualitative analysis}
+\end{comment}
 
 \section{Conclusion}
 \label{sec:conclusion}
