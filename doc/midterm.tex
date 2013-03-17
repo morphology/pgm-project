@@ -305,7 +305,7 @@ the vocabulary. In more details:
 
 \begin{figure}[h]
 \centering
-\includegraphics[width=0.5\textwidth]{fig/graph-model}
+\includegraphics[width=0.4\textwidth]{fig/graph-model}
 \caption{Baseline model}
 \label{fig:graph-model}
 \end{figure}
@@ -330,11 +330,15 @@ perplexity of the model on held-out data, but we prefer to focus on
 the core goal of the project and evaluate the stemming or segmentation
 accuracy.
 
-XXXXXXXXXXXXXXXXXXXXXXXXX TODO XXXXXXXXXXXXXXXXXXXXXXXXX
+There are two types of metrics we consider to evaluate our model:
 \begin{enumerate}
-    \item splitting accuracy
-    \item stemming accuracy (ability to map different variants to same word - precision/recall?)
+    \item splitting accuracy, measured with respect to a gold standard segmentation. This gives an indication of how good the model is at recovering stems and inflectional morphemes, but there is some ambiguity with respect to defining the expected segmentation (for example, should the word "gives" be segmented as "giv+es" or "give+s"?).
+    \item stemming accuracy, which measures how good the model is at mapping inflected forms to a shared stem, ignoring the inflectional morphemes. This reflects how useful our model would be as a pre-processing tool to reduce the vocabulary size used in downsream NLP applications.
 \end{enumerate}
+
+For now, we report only the splitting accuracy, but we will shortly implement the second kind of metrics and incorporate them in our final evaluation.
+
+Additionaly, we can report these metrics either on the types or the tokens of the corpus, which puts more or less emphasis on infrequent words.
 
 \subsection{Model Reparameterization}
 
@@ -464,8 +468,8 @@ qualitative analysis of the model's output.
 The input to the model is a sequence of word tokens. We generate this 
 from both the datasets by going through each sentence and printing verbs 
 in case of WSJ and non-stop-words in case of the DB dataset. After the 
-preprocessing the WSJ dataset has 7156 types and 113549 tokens while the 
-DB dataset has 15583 types and 110347 tokens.
+preprocessing the WSJ dataset has 7k types and 113k tokens while the 
+DB dataset has 15k types and 110k tokens.
 
 \subsection{Setup}
 
