@@ -595,6 +595,42 @@ datshit & 7 & datshit & \\
 \section{Conclusion}
 \label{sec:conclusion}
 
+We have outlined work related to our project and summarized
+experimental results that we have obtained so far. We have identified
+three key aspects of our project on which we will continue to work
+during the second half of the semester. While we all plan to
+contribute to the following agendas, in each item we also list a
+member of our team that will be responsible for coordinating the
+efforts.
+
+\begin{description}
+\item[Model] We need to more fully describe the mathematics of the
+  reparameterization of the Goldwater model using the work presented
+  in \cite{lovell2012}. In the current report, we have outlined how
+  the the reparameterization will be applied to our model of
+  morphology, but the next step (implementation) will require more
+  detailed mathematics. Peter will be in charge of this goal.
+
+\item[Implementation] We have already implemented the baseline
+  Goldwater model, but will need to implement our reparameterization
+  within the next few weeks. In addition to writing code that follows
+  the sampling scheme that will be further developed by the first
+  item, we also need to consider parallelization issues. Namely, how
+  will the different compute nodes involved in our model
+  coordinate. Victor will be in charge of this goal.
+
+\item[Data and Evaluation] Finally, we must continue to collect
+  interesting datasets and identify relevant metrics. We have
+  mentioned that our goal is to make the Goldwater model more
+  efficient so that it is feasible to use more sophisticated
+  morphological analysis as a preprocessing step when building
+  language technologies. With this in mind, we must consider
+  alternative ways of evaluating the output of our model. We currently
+  evaluate how accurate the analyses are, but we may also be
+  interested in how accurately the model can act as a stemmer. Phani
+  will be in charge of this goal.
+\end{description}
+
 \bibliographystyle{plain}
 \bibliography{bibliography}
 
