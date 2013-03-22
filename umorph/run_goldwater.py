@@ -1,17 +1,11 @@
 #!/usr/bin/env python
+import argparse
 import logging
 import math
 import sys
 import time
 from vpyp.corpus import Vocabulary
 from golwater import pyp, LexiconModel, word_splits
-
-n_classes = 6
-alpha_c = 0.5
-alpha_t = 0.001
-alpha_f = 0.001
-d, theta = 0.1, 1e-6
-n_iter = 1000
 
 def run_sampler(model, corpus, n_iter):
     for it in xrange(n_iter):
@@ -35,6 +29,23 @@ def show_analyses(model):
 def main():
     logging.basicConfig(level=logging.INFO, format='%(message)s')
 
+    parser = argparse.ArgumentParser(description='Run Golwater model')
+    parser.add_argument('-i', '--n_iter', type=int, required=True,
+            help='Number of iterations')
+    parser.add_argument('-k', '--n_classes', type=int, required=True,
+            help='Number of latent classes')
+    parser.add_argument('--alpha_c', '-ac', type=float, default=0.5,
+            help='Smoothing parameter for class Dirichlet prior')
+    parser.add_argument('--alpha_t', '-at', type=float, default=0.001,
+            help='Smoothing parameter for stem Dirichlet prior')
+    parser.add_argument('--alpha_f', '-af', type=float, default=0.001,
+            help='Smoothing parameter for suffix Dirichlet prior')
+    parser.add_argument('--discount', '-d', type=float, default=0.1,
+            help='PY prior discount')
+    parser.add_argument('--strength', '-t', type=float, default=1e-6,
+            help='PY prior stength')
+    args = parser.parse_args()
+
     # Read the training corpus
     word_vocabulary = Vocabulary(start_stop=False)
     corpus = [word_vocabulary[line.decode('utf8').strip()] for line in sys.stdin]
@@ -50,12 +61,12 @@ def main():
     logging.info('%d tokens / %d types / %d stems / %d suffixes',
             len(corpus), len(word_vocabulary), len(stem_vocabulary), len(suffix_vocabulary))
 
-    model = pyp(LexiconModel(n_classes, alpha_c, alpha_t, alpha_f,
-            word_vocabulary, stem_vocabulary, suffix_vocabulary), d, theta)
+    model = pyp(LexiconModel(args.n_classes, args.alpha_c, args.alpha_t, args.alpha_f,
+            word_vocabulary, stem_vocabulary, suffix_vocabulary), args.discount, args.strength)
 
     # Run the Gibbs sampler
     t_start = time.time()
-    run_sampler(model, corpus, n_iter)
+    run_sampler(model, corpus, args.n_iter)
     t_end = time.time()
     runtime = t_end - t_start
     print('Sampler ran for {:.3f} seconds'.format(runtime))
