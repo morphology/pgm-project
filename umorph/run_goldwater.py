@@ -8,10 +8,18 @@ from vpyp.corpus import Vocabulary
 from golwater import pyp, LexiconModel, word_splits
 
 def run_sampler(model, corpus, n_iter):
+    for w in corpus:
+        model.increment(w, initialize=True)
     for it in xrange(n_iter):
+        # PYP sampling
         for w in corpus:
-            if it > 0: model.decrement(w)
+            model.decrement(w)
             model.increment(w)
+        # base sampling
+        try:
+            model.resample_base()
+        except AttributeError:
+            pass
         if it % 10 == 9:
             logging.info('Iteration %d/%d', it+1, n_iter)
             ll = model.log_likelihood(full=True)
@@ -19,9 +27,13 @@ def run_sampler(model, corpus, n_iter):
             logging.info('LL=%.0f ppl=%.0f', ll, ppl)
             logging.info('Model: %s', model)
 
-def show_analyses(model):
+def show_analyses(model, marginalize):
     for w, word in enumerate(model.word_vocabulary):
-        c, t, f = model.decode_word(w)
+        if marginalize:
+            t, f = model.decode_word(w, marginalize=True)
+            c = '_'
+        else:
+            c, t, f = model.decode_word(w)
         stem = model.stem_vocabulary[t]
         suffix = model.suffix_vocabulary[f]
         print(u'{}\t{}\t{}\t{}'.format(word, c, stem, suffix).encode('utf8'))
@@ -44,6 +56,10 @@ def main():
             help='PY prior discount')
     parser.add_argument('--strength', '-t', type=float, default=1e-6,
             help='PY prior stength')
+    parser.add_argument('--types', action='store_true',
+            help='Run model on types instead of tokens')
+    parser.add_argument('--marginalize', action='store_true',
+            help='Marginalize latent class when decoding')
     args = parser.parse_args()
 
     # Read the training corpus
@@ -61,18 +77,23 @@ def main():
     logging.info('%d tokens / %d types / %d stems / %d suffixes',
             len(corpus), len(word_vocabulary), len(stem_vocabulary), len(suffix_vocabulary))
 
-    model = pyp(LexiconModel(args.n_classes, args.alpha_c, args.alpha_t, args.alpha_f,
-            word_vocabulary, stem_vocabulary, suffix_vocabulary), args.discount, args.strength)
+    lexicon_model = LexiconModel(args.n_classes, args.alpha_c, args.alpha_t, args.alpha_f,
+            word_vocabulary, stem_vocabulary, suffix_vocabulary) # generator
+    if args.types:
+        model = lexicon_model
+        corpus = range(len(word_vocabulary)) # corpus = lexicon
+    else:
+        model = pyp(lexicon_model, args.discount, args.strength) # adaptor
 
     # Run the Gibbs sampler
     t_start = time.time()
     run_sampler(model, corpus, args.n_iter)
     t_end = time.time()
     runtime = t_end - t_start
-    print('Sampler ran for {:.3f} seconds'.format(runtime))
+    logging.info('Sampler ran for {:.3f} seconds'.format(runtime))
 
     # Print out the most likely analysis for each word in the vocabulary
-    show_analyses(model.base)
+    show_analyses(lexicon_model, args.marginalize)
 
 if __name__ == '__main__':
     main()

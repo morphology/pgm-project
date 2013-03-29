@@ -1,13 +1,19 @@
-from vpyp.prob import mult_sample, remove_random, DirichletMultinomial
+import random
+from itertools import groupby
+from vpyp.prob import mult_sample, remove_random, SparseDirichletMultinomial
 from vpyp.prior import GammaPrior, PYPPrior
 from vpyp.pyp import PYP
 
-dirichlet_multinomial = lambda K, alpha: DirichletMultinomial(K, GammaPrior(1, 1, alpha))
+dirichlet_multinomial = lambda K, alpha: SparseDirichletMultinomial(K, GammaPrior(1, 1, alpha))
 pyp = lambda base, discount, strength: PYP(base, PYPPrior(1, 1, 1, 1, discount, strength))
 
 def word_splits(word):
-    # allow NULL suffix but not prefix
-    for k in range(1, len(word)+1):
+    # en-ptb: allow NULL suffix but not prefix
+    # for k in range(1, len(word)+1): 
+    # ru-adj: non-null prefix and suffix
+    # for k in range(1, (len(word)+1 if len(word)<3 else len(word))):
+    # generic
+    for k in range(0, len(word)+1):
         yield word[:k], word[k:]
 
 class LexiconModel:
@@ -23,8 +29,11 @@ class LexiconModel:
         self.suffix_vocabulary = suffix_vocabulary
         self.analyses = [[] for _ in range(len(word_vocabulary))] # word -> [(c, t, f)]
     
-    def increment(self, word):
-        c, t, f = mult_sample(self._analysis_probs(word))
+    def increment(self, word, initialize=False):
+        if initialize:
+            c, t, f = random.choice([a for a, _ in self._analysis_probs(word)])
+        else:
+            c, t, f = mult_sample(self._analysis_probs(word))
         self.class_model.increment(c)
         self.stem_models[c].increment(t)
         self.suffix_models[c].increment(f)
@@ -54,9 +63,15 @@ class LexiconModel:
                         * self.suffix_models[c].prob(f))
                 yield (c, t, f), p_split
 
-    def decode_word(self, word):
-        return max(self._analysis_probs(word), key=lambda t: t[1])[0]
+    def _marginal_analysis_probs(self, word):
+        analysis_groups = groupby(self._analysis_probs(word), lambda t:t[0][1:])
+        for k, g in analysis_groups:
+            yield k, sum(p for _, p in g)
+
+    def decode_word(self, word, marginalize=False):
+        aprob = self._marginal_analysis_probs if marginalize else self._analysis_probs
+        return max(aprob(word), key=lambda t: t[1])[0]
 
     def __repr__(self):
-        return ('LexiconModel(c ~ {self.class_model}); '
-                't, f | c ~ Mult ~ Dir').format(self=self, n_classes=len(self.stem_models))
+        return ('LexiconModel(c ~ {self.class_model}; '
+                't, f | c ~ Mult ~ Dir)').format(self=self, n_classes=len(self.stem_models))

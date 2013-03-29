@@ -45,7 +45,7 @@ def main():
     analysis = {}
     with open(args.analysis) as f:
         for line in f:
-            word, cl, stem, suffix = line[:-1].split('\t')
+            word, cl, stem, suffix = line.decode('utf8')[:-1].split('\t')
             analysis[word] = (stem, suffix)
 
     types = set()
@@ -54,7 +54,7 @@ def main():
     type_errors = 0
     with open(args.gold_standard) as f:
         for line in f:
-            word, morph, pos = line[:-1].split('\t')
+            word, morph, pos = line.decode('utf8')[:-1].split('\t')
             morphemes = morph.split('+')
             if len(morphemes) not in (1, 2): continue # should not happen
             stem = morphemes[0]
