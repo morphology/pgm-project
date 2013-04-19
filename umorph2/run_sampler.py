@@ -1,0 +1,28 @@
+import sys
+import logging
+from vpyp.corpus import Vocabulary
+from train import segmentations, DP, LexiconModel, run_sampler
+
+def main():
+    logging.basicConfig(level=logging.INFO)
+
+    word_vocabulary = Vocabulary(start_stop=False)
+    corpus = [word_vocabulary[line.decode('utf8').strip()] for line in sys.stdin]
+
+    # Compute all the possible stems
+    stems = set(stem for word in word_vocabulary for stem, suffix in segmentations(word))
+    stem_vocabulary = Vocabulary(start_stop=False, init=stems)
+
+    # Compute all the possible suffixes
+    suffixes = set(suffix for word in word_vocabulary for stem, suffix in segmentations(word))
+    suffix_vocabulary = Vocabulary(start_stop=False, init=suffixes)
+
+    logging.info('%d tokens / %d types / %d stems / %d suffixes',
+            len(corpus), len(word_vocabulary), len(stem_vocabulary), len(suffix_vocabulary))
+
+    model = DP(0.1, LexiconModel(len(stem_vocabulary), len(suffix_vocabulary), 1e-6, 1e-6), word_vocabulary, stem_vocabulary, suffix_vocabulary)
+
+    run_sampler(model, 1000, corpus)
+
+if __name__ == '__main__':
+    main()
