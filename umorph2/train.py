@@ -28,62 +28,73 @@ def segmentations(word):
     for k in range(0, len(word)+1):
         yield word[:k], word[k:]
 
-class LexiconModel:
-    def __init__(self, n_prefixes, n_suffixes, alpha_s, alpha_p):
-        self.theta_s = Multinomial(n_prefixes, Dirichlet(alpha_s))
-        self.theta_p = Multinomial(n_suffixes, Dirichlet(alpha_p))
+class MultProduct:
+    """H(p, s) = theta_p(p) * theta_s(s)"""
+    def __init__(self, n_prefixes, alpha_p, n_suffixes, alpha_s):
+        self.theta_p = Multinomial(n_prefixes, Dirichlet(alpha_p))
+        self.theta_s = Multinomial(n_suffixes, Dirichlet(alpha_s))
 
-    def prob(self, k):
-        return -1
+    def prob(self, p, s):
+        return self.theta_p.prob(p) * self.theta_s.prob(s)
 
-    def resample(self, counts_s, counts_p):
-        self.theta_s.update(counts_s)
-        self.theta_p.update(counts_p)
+    def resample(self, counts_p, counts_s):
+        self.theta_p.resample(counts_p)
+        self.theta_s.resample(counts_s)
 
-class DP(CRP):
-    def __init__(self, alpha, base, word_vocabulary, stem_vocabulary, postfix_vocabulary):
+class SegmentationModel(CRP):
+    """SegmentationModel ~ DP(alpha, H)"""
+    def __init__(self, alpha, alpha_p, alpha_s, word_vocabulary,
+            prefix_vocabulary, suffix_vocabulary):
         self.alpha = alpha
-        self.base = base
+        self.base = MultProduct(len(prefix_vocabulary), alpha_p,
+                len(suffix_vocabulary), alpha_s)
         self.word_vocabulary = word_vocabulary
-        self.stem_vocabulary = stem_vocabulary
-        self.postfix_vocabulary = postfix_vocabulary
-        super(DP, self).__init__()
+        self.prefix_vocabulary = prefix_vocabulary
+        self.suffix_vocabulary = suffix_vocabulary
+        super(SegmentationModel, self).__init__()
 
+    def _random_table(self, k):
+        """pick a table with dish k randomly"""
+        n = random.randrange(0, self.ncustomers[k])
+        tables = self.tables[k]
+        for i, c in enumerate(tables):
+            if n < c: return i
+            n -= c
 
-    def init(self, k):
-        (seat, s, p) = mult_sample(self.seating_probs(k, True))
-        self._seat_to(k, seat)
-        return seat
+    def seating_probs(self, k, initialize=False):
+        for prefix, suffix in segmentations(self.word_vocabulary[k]):
+            p = self.prefix_vocabulary[prefix]
+            s = self.suffix_vocabulary[suffix]
+            yield (p, s, -1), (1 if initialize else self.alpha * self.base.prob(p, s))
+            if not (p, s) in self.tables: continue
+            for seat, count in enumerate(self.tables[(p, s)]):
+                yield (p, s, seat), (1 if initialize else count)
 
-    def resample(self, k, seat):
-        self._unseat_from(k, seat)
-        (new_seat, s, p) = mult_sample(self.seating_probs(k))
-        self._seat_to(k, new_seat)
-        return new_seat
+    def increment(self, k, initialize=False):
+        (p, s, seat) = mult_sample(self.seating_probs(k, initialize))
+        self._seat_to((p, s), seat)
+        return (p, s)
 
-    def seating_probs(self, k, init=False):
-        for (stem, postfix) in segmentations(self.word_vocabulary[k]):
-            s = self.stem_vocabulary[stem]
-            p = self.postfix_vocabulary[postfix]
-            yield (-1, s, p), (1 if init else self.alpha*self.base.prob((s, p)))
-            if not (s, p) in self.tables: continue
-            for seat, count in enumerate(self.tables[(s, p)]):
-                yield (seat, s, p), (1 if init else count)
+    def decrement(self, k, ps):
+        p, s = ps
+        seat = self._random_table((p, s))
+        self._unseat_from((p, s), seat)
 
 def run_sampler(model, n_iter, words):
     # initialize
     logging.info('Initializing')
-    seatings = [model.init(word) for word in words]
+    analyses = [model.increment(word, initialize=True) for word in words]
     # loop
     for it in xrange(n_iter):
         logging.info('Iteration %d/%d', it+1, n_iter)
         # 1. resample seat assignments and table labels given H
         for w in xrange(len(words)):
-            seatings[w] = model.resample(words[w], seatings[w])
+            model.decrement(words[w], analyses[w])
+            analyses[w] = model.increment(words[w])
         # 2. resample H given table tables
-        counts_s = [0]*len(model.stem_vocabulary)
-        counts_p = [0]*len(model.postfix_vocabulary)
-        for (s, p), tables in model.tables.iteritems():
-            counts_s[s] += len(tables)
+        counts_p = [0]*len(model.prefix_vocabulary)
+        counts_s = [0]*len(model.suffix_vocabulary)
+        for (p, s), tables in model.tables.iteritems():
             counts_p[p] += len(tables)
-        model.base.resample(counts_s, counts_p)
+            counts_s[s] += len(tables)
+        model.base.resample(counts_p, counts_s)
