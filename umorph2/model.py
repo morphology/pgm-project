@@ -52,7 +52,6 @@ class Dirichlet:
         return (math.lgamma(K * self.alpha) - K * math.lgamma(self.alpha)
                 + sum((self.alpha - 1) * math.log(t) for t in theta))
 
-
 class MultProduct:
     """H(p, s) = theta_p(p) * theta_s(s)"""
     def __init__(self, n_prefixes, alpha_p, n_suffixes, alpha_s):
