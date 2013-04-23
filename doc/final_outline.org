@@ -1,0 +1,30 @@
+* Phase 1
+
+** Why is this work interesting?
+
+Probabilistic models of morphology have demonstrated competitive
+performance on the task of unsupervised morphological analysis. Given
+the complexity of the models used, it is often necessary to use Monte
+Carlo Markov chain algorithms to perform inference. MCMC methods can
+be computationally expensive, and for morphological analysis (which is
+most useful as the first type of linguistic analysis in the
+traditional NLP pipeline), it may not be acceptable to use large
+amounts of time and compute resources.
+
+Significant research effort has gone into speeding up MCMC sampling
+techniques either by improving sampling agendas or by finding ways in
+which the exact distribution or an approximation to the distribution
+can be sampled in parallel on multiple cores or compute nodes.
+
+Speeding up the MCMC techniques used for performing inference in
+linguistically rich models of morphology may make such models more
+feasible for use in real world natural language processing
+applications. The Porter Stemmer, for example, is a widely used
+stemming algorithm valued for its computational efficiency and
+reasonable performance when lemmatizing tokens in a document.
+
+** Why did we do this work?
+
+** What hypotheses did we mean to test?
+
+** What hypotheses did we actually test?
