@@ -21,9 +21,10 @@ def show_top(model):
 
 def run_sampler(model, n_iter):
     for it in xrange(n_iter):
-        if it % 10 == 0:
-            logging.info('Iteration %d/%d', it+1, n_iter)
-            show_top(model)
+        print 'Starting iteration %d' % it
+        # if it % 10 == 0:
+        #     logging.info('Iteration %d/%d', it+1, n_iter)
+        #     show_top(model)
         model.resample()
 
 
@@ -42,10 +43,11 @@ def main():
     logging.info('%d tokens / %d types / %d prefixes / %d suffixes',
                  len(corpus), len(word_vocabulary), len(prefix_vocabulary), len(suffix_vocabulary))
 
+    logging.info('Starting %d processes', n_processors)
     model = ParallelSegmentationModel(0.5, 1e-6, 1e-6, corpus, word_vocabulary,
                                       prefix_vocabulary, suffix_vocabulary, n_processors)
 
-    run_sampler(model, 1000)
+    run_sampler(model, 10)
 
     model.shutdown()
 
