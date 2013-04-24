@@ -1,11 +1,11 @@
-import multiprocessing as mp
+import multiprocessing
 import random
 from collections import Counter
-from segment import segmentations
 from vpyp.pyp import CRP
 from vpyp.prob import mult_sample
 
-class CRPSlave(CRP, mp.Process):
+
+class CRPSlave(CRP, multiprocessing.Process):
     def __init__(self, alpha, base, corpus, seg_mappings, gid, iq, oq):
         self.alpha = alpha
         self.base = base
@@ -69,3 +69,4 @@ class CRPSlave(CRP, mp.Process):
     def __repr__(self):
         return 'CRPSlave(alpha={self.alpha}, gid={self.gid})'.\
             format(self=self)
+
