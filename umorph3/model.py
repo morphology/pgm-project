@@ -95,7 +95,7 @@ class MultinomialProduct(object):
 
 class ParallelSegmentationModel(object):
     def __init__(self, alpha, alpha_p, alpha_s, corpus, w_vocabulary, p_vocabulary, s_vocabulary, n_processors):
-        self.alpha = alpha
+        self.alpha = float(alpha)
         self.alpha_p = alpha_p
         self.alpha_s = alpha_s
         self.base = MultinomialProduct(len(p_vocabulary), alpha_p, len(s_vocabulary), alpha_s)
@@ -111,7 +111,7 @@ class ParallelSegmentationModel(object):
         self._processor_indicators = [random.randrange(self.n_processors) for _ in self.corpus]
         for i in xrange(self.n_processors):
             iq, oq = multiprocessing.Queue(), multiprocessing.Queue()
-            s = CRPSlave(self.alpha, self.base, self.corpus, self.seg_mappings, i, iq, oq)
+            s = CRPSlave(self.alpha/self.n_processors, self.base, self.corpus, self.seg_mappings, i, iq, oq)
             self._slaves.append((s, iq, oq))
             s.start()
             iq.put(self._processor_indicators)
