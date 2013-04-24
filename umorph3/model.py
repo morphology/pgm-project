@@ -109,7 +109,7 @@ class ParallelSegmentationModel(object):
         self._processor_indicators = [random.randrange(self.n_processors) for _ in self.corpus]
         for i in xrange(self.n_processors):
             iq, oq = multiprocessing.Queue(), multiprocessing.Queue()
-            s = CRPSlave(self.alpha, self.base, self.seg_mappings, i, iq, oq)
+            s = CRPSlave(self.alpha, self.base, self.corpus, self.seg_mappings, i, iq, oq)
             s.start()
             iq.put(self._processor_indicators)
 
