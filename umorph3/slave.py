@@ -16,7 +16,7 @@ class CRPSlave(CRP, multiprocessing.Process):
         self.oq = oq
         self.p_counts = Counter()
         self.s_counts = Counter()
-        CRP.__init__(self) # these two lines bad, but okay for now
+        CRP.__init__(self) # these two lines are bad, but okay for now
         multiprocessing.Process.__init__(self)
 
     def _random_table(self, k):
