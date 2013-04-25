@@ -40,11 +40,11 @@ class CRPSlave(CRP, multiprocessing.Process):
         if self._seat_to((p, s), seat):
             self.p_counts[p] += 1
             self.s_counts[s] += 1
-        seat = seat if seat >= 0 else len(self.tables[(p, s)])-1 # get seat number if we created new table
+        # get seat number if we created new table
+        seat = seat if seat >= 0 else len(self.tables[(p, s)])-1
         return (p, s), seat
 
-    def decrement(self, p, s):
-        seat = self._random_table((p, s))
+    def decrement(self, p, s, seat):
         if self._unseat_from((p, s), seat):
             self.p_counts[p] -= 1
             self.s_counts[s] -= 1
@@ -62,17 +62,50 @@ class CRPSlave(CRP, multiprocessing.Process):
             parcel = self.iq.get()
             if parcel is None: # poison pill
                 return
-            if parcel == 'send_assignments': # prepare for processor resample
+
+            elif parcel == 'send_assignments': # prepare for processor resample
                 assignments = {}
                 for i in (i for i, pi in enumerate(processor_indicators) if pi == self.gid):
                     assignments[i] = (self.gid, analyses[i], seats[i])
                 self.oq.put(assignments)
-                new_tables = self.iq.get()
+
+                accepted = self.iq.get()
+                new_processor_indicators = self.iq.get()
+                new_assignments = self.iq.get()
+
+                if accepted: # set up new tables
+                    analyses = {}
+                    seats = {}
+                    processor_indicators = new_processor_indicators
+                    self.tables = {}
+                    self.ntables = 0
+                    self.ncustomers = {}
+                    self.total_customers = 0
+                    seatmap = {}
+                    for i, assgn in new_assignments.iteritems():
+                        _, analysis, _ = assgn
+                        if analysis not in self.tables: # new dish
+                            self.tables[analysis] = [1]
+                            seatmap[assgn] = 0
+                            self.ntables += 1
+                        else: # existing dish
+                            if assgn not in seatmap: # new table
+                                seatmap[assgn] = len(self.tables[analysis])
+                                self.tables[analysis].append(1)
+                                self.ntables += 1
+                            else:
+                                seat = seatmap[assgn]
+                                self.tables[seat] += 1
+                        self.ncustomers[analysis] += 1
+                        self.total_customers += 1
+                        analyses[i] = analysis
+                        seats[i] = seatmap[assgn]
+
             else:
-                base, processor_indicators = parcel
+                base = parcel
                 self.base = base
                 for i in (i for i, pi in enumerate(processor_indicators) if pi == self.gid):
-                    self.decrement(*analyses[i])
+                    self.decrement(analyses[i][0], analyses[i][1], seat)
                     analysis, seat = self.increment(self.corpus[i])
                     analyses[i] = analysis
                     seats[i] = seat

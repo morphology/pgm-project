@@ -1,3 +1,4 @@
+import logging
 import math
 import multiprocessing
 import numpy as np
@@ -121,7 +122,7 @@ class ParallelSegmentationModel(object):
     def resample(self, processors=False):
         """Run the sampler for the parallelized model."""
         for p, iq, _ in self._slaves:
-            iq.put((self.base, self._processor_indicators))
+            iq.put(self.base)
 
         # TODO check if necessary to leave previous base unchanged (because children use it)
         self.base = MultinomialProduct(len(self.prefix_vocabulary), self.alpha_p,
@@ -154,13 +155,19 @@ class ParallelSegmentationModel(object):
             numer = sum(math.log(c) for ccs in proposed_ccs for c in ccs.itervalues())
             denom = sum(math.log(c) for ccs in old_ccs for c in ccs.itervalues())
             ratio = math.exp(numer - denom)
-
-            print ratio
             accept_prob = min(1.0, ratio)
-            print accept_prob
+
+            accepted = True if random.random() < accept_prob else False
+            if accepted:
+                self._processor_indicators = new_processor_indicators
+                assignments = new_assignments
+            else:
+                assignments = old_assignments
 
             for i, (_, iq, _) in enumerate(self._slaves):
-                iq.put(old_assignments[i])
+                iq.put(accepted)
+                iq.put(self._processor_indicators)
+                iq.put(assignments[i])
 
     def _product_of_facts(self, ccs):
         return reduce(lambda x,y: x*y, [math.factorial(v) for v in ccs.itervalues()])
