@@ -40,7 +40,8 @@ class CRPSlave(CRP, multiprocessing.Process):
         if self._seat_to((p, s), seat):
             self.p_counts[p] += 1
             self.s_counts[s] += 1
-        return (p, s)
+        seat = seat if seat >= 0 else len(self.tables[(p, s)])-1 # get seat number if we created new table
+        return (p, s), seat
 
     def decrement(self, p, s):
         seat = self._random_table((p, s))
@@ -51,19 +52,30 @@ class CRPSlave(CRP, multiprocessing.Process):
     def run(self):
         processor_indicators = self.iq.get()
         analyses = {}
+        seats = {}
         for i in (i for i, pi in enumerate(processor_indicators) if pi == self.gid):
-            analyses[i] = self.increment(self.corpus[i], initialize=True)
+            analysis, seat = self.increment(self.corpus[i], initialize=True)
+            analyses[i] = analysis
+            seats[i] = seat
 
         while True:
             parcel = self.iq.get()
             if parcel is None: # poison pill
                 return
+            if parcel == 'send_assignments': # prepare for processor resample
+                assignments = {}
+                for i in (i for i, pi in enumerate(processor_indicators) if pi == self.gid):
+                    assignments[i] = (self.gid, analyses[i], seats[i])
+                self.oq.put(assignments)
+                new_tables = self.iq.get()
             else:
                 base, processor_indicators = parcel
                 self.base = base
                 for i in (i for i, pi in enumerate(processor_indicators) if pi == self.gid):
                     self.decrement(*analyses[i])
-                    analyses[i] = self.increment(self.corpus[i])
+                    analysis, seat = self.increment(self.corpus[i])
+                    analyses[i] = analysis
+                    seats[i] = seat
                 self.oq.put((self.p_counts, self.s_counts))
 
     def __repr__(self):

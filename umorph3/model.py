@@ -1,6 +1,8 @@
 import math
 import multiprocessing
+import numpy as np
 import random
+from collections import Counter
 from segment import segmentation_mapping
 from slave import CRPSlave
 
@@ -116,7 +118,7 @@ class ParallelSegmentationModel(object):
             s.start()
             iq.put(self._processor_indicators)
 
-    def resample(self):
+    def resample(self, processors=False):
         """Run the sampler for the parallelized model."""
         for p, iq, _ in self._slaves:
             iq.put((self.base, self._processor_indicators))
@@ -130,6 +132,42 @@ class ParallelSegmentationModel(object):
             self.base.update(p_counts, s_counts)
 
         self.base.resample()
+
+        if processors:
+            old_assignments = []
+            for _, iq, oq in self._slaves:
+                iq.put('send_assignments')
+                old_assignments.append(oq.get())
+
+            # processor resampling code here
+            new_assignments = [{} for _ in xrange(self.n_processors)]
+            new_processor_indicators = []
+            for i, pi in enumerate(self._processor_indicators):
+                new_pi = random.randrange(self.n_processors)
+                new_processor_indicators.append(new_pi)
+                new_assignments[new_pi][i] = old_assignments[pi][i]
+
+            # compute the number of clusters of each size for each processor
+            proposed_ccs = [self._count_of_counts(assgn) for assgn in new_assignments]
+            old_ccs = [self._count_of_counts(assgn) for assgn in old_assignments]
+
+            numer = sum(math.log(c) for ccs in proposed_ccs for c in ccs.itervalues())
+            denom = sum(math.log(c) for ccs in old_ccs for c in ccs.itervalues())
+            ratio = math.exp(numer - denom)
+
+            print ratio
+            accept_prob = min(1.0, ratio)
+            print accept_prob
+
+            for i, (_, iq, _) in enumerate(self._slaves):
+                iq.put(old_assignments[i])
+
+    def _product_of_facts(self, ccs):
+        return reduce(lambda x,y: x*y, [math.factorial(v) for v in ccs.itervalues()])
+
+    def _count_of_counts(self, assignments):
+        clusters = Counter(assignments.itervalues())
+        return Counter(clusters.itervalues())
 
     def shutdown(self):
         """Shut down any resources used."""

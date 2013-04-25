@@ -24,7 +24,10 @@ def run_sampler(model, n_iter):
         if it % 10 == 0:
             logging.info('Iteration %d/%d', it+1, n_iter)
             show_top(model)
-        model.resample()
+
+        processors = True if (it > 0 and it % 10 == 0) else False
+        if processors: logging.info('Resampling processors')
+        model.resample(processors)
 
 
 def main():
