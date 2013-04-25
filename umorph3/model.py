@@ -112,21 +112,20 @@ class ParallelSegmentationModel(object):
 
         self._slaves = []
         self._processor_indicators = [random.randrange(self.n_processors) for _ in self.corpus]
-        for i in xrange(self.n_processors):
+        for gid in xrange(self.n_processors):
             iq, oq = multiprocessing.Queue(), multiprocessing.Queue()
-            s = CRPSlave(self.alpha/self.n_processors, self.base, self.corpus, self.seg_mappings, i, iq, oq)
+            s = CRPSlave(self.alpha/self.n_processors, self.base, self.seg_mappings, gid, iq, oq)
             self._slaves.append((s, iq, oq))
             s.start()
-            iq.put(self._processor_indicators)
+            words = [w for i, w in enumerate(self.corpus) if self._processor_indicators[i] == gid]
+            iq.put(words)
 
     def resample(self, processors=False):
         """Run the sampler for the parallelized model."""
         for p, iq, _ in self._slaves:
             iq.put(self.base)
 
-        # TODO check if necessary to leave previous base unchanged (because children use it)
-        self.base = MultinomialProduct(len(self.prefix_vocabulary), self.alpha_p,
-                                       len(self.suffix_vocabulary), self.alpha_s)
+        self.base.reset()
 
         for p, _, oq in self._slaves:
             p_counts, s_counts = oq.get()
@@ -135,46 +134,36 @@ class ParallelSegmentationModel(object):
         self.base.resample()
 
         if processors:
-            old_assignments = []
+            slave_tables = []
             for _, iq, oq in self._slaves:
-                iq.put('send_assignments')
-                old_assignments.append(oq.get())
+                iq.put('send_tables')
+                slave_tables.append(oq.get())
 
-            # processor resampling code here
-            new_assignments = [{} for _ in xrange(self.n_processors)]
-            new_processor_indicators = []
-            for i, pi in enumerate(self._processor_indicators):
-                new_pi = random.randrange(self.n_processors)
-                new_processor_indicators.append(new_pi)
-                new_assignments[new_pi][i] = old_assignments[pi][i]
+            new_tables = [[] for _ in slave_tables]
+            for tables in slave_tables:
+                for table in tables:
+                    pi = random.randrange(self.n_processors)
+                    new_tables[pi].append(table)
 
-            # compute the number of clusters of each size for each processor
-            proposed_ccs = [self._count_of_counts(assgn) for assgn in new_assignments]
-            old_ccs = [self._count_of_counts(assgn) for assgn in old_assignments]
-
-            numer = sum(math.log(c) for ccs in proposed_ccs for c in ccs.itervalues())
-            denom = sum(math.log(c) for ccs in old_ccs for c in ccs.itervalues())
+            new_ccs = [self._counts_of_counts(tables) for tables in new_tables]
+            old_ccs = [self._counts_of_counts(tables) for tables in slave_tables]
+            numer = sum(math.lgamma(v+1) for ccs in new_ccs for v in ccs.itervalues())
+            denom = sum(math.lgamma(v+1) for ccs in old_ccs for v in ccs.itervalues())
+            logging.info('%f - %f = %f', numer, denom, numer - denom)
             ratio = math.exp(numer - denom)
+            logging.info('%f', ratio)
             accept_prob = min(1.0, ratio)
-
-            accepted = True if random.random() < accept_prob else False
-            if accepted:
-                self._processor_indicators = new_processor_indicators
-                assignments = new_assignments
-            else:
-                assignments = old_assignments
+    
+            accept = random.random() < accept_prob
+            if accept:
+                logging.info('Resampling processor indicators')
 
             for i, (_, iq, _) in enumerate(self._slaves):
-                iq.put(accepted)
-                iq.put(self._processor_indicators)
-                iq.put(assignments[i])
+                iq.put(accept)
+                iq.put(new_tables[i])
 
-    def _product_of_facts(self, ccs):
-        return reduce(lambda x,y: x*y, [math.factorial(v) for v in ccs.itervalues()])
-
-    def _count_of_counts(self, assignments):
-        clusters = Counter(assignments.itervalues())
-        return Counter(clusters.itervalues())
+    def _counts_of_counts(self, tables):
+        return Counter(c for _, c in tables)
 
     def shutdown(self):
         """Shut down any resources used."""
