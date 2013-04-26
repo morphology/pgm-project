@@ -1,7 +1,6 @@
 import logging
 import math
 import multiprocessing
-import numpy as np
 import random
 from collections import Counter
 from segment import segmentation_mapping
@@ -29,12 +28,22 @@ class Multinomial(object):
     def prob(self, k):
         return self.theta[k]
 
+    def marginal_prob(self, k):
+        return (float(self.counts[k] + self.prior.alpha)
+                / (self.N + self.K * self.prior.alpha))
+
     def reset(self):
         self.counts = [0]*self.K
         self.N = 0
 
     def resample(self):
         self.theta = self.prior.sample(self.counts)
+
+    def marginal_ll(self):
+        ll = (math.lgamma(self.K * self.prior.alpha) - math.lgamma(self.K * self.prior.alpha + self.N)
+              + sum(math.lgamma(self.counts[k] + self.prior.alpha) for k in xrange(self.K))
+              - self.K * math.lgamma(self.prior.alpha))
+        return ll
 
     def log_likelihood(self):
         return (math.lgamma(self.N + 1) + sum(c * math.log(self.theta[k]) - math.lgamma(c + 1)
@@ -75,6 +84,9 @@ class MultinomialProduct(object):
 
     def prob(self, p, s):
         return self.theta_p.prob(p) * self.theta_s.prob(s)
+    
+    def marginal_prob(self, p, s):
+        return self.theta_p.marginal_prob(p) + self.theta_s.marginal_prob(s)
 
     def resample(self):
         self.theta_p.resample()
@@ -92,8 +104,7 @@ class MultinomialProduct(object):
             self.theta_s.increment(k, c)
 
     def log_likelihood(self):
-        #return self.theta_p.log_likelihood() + self.theta_s.log_likelihood()
-        return 0 # numerical precision errors make LL computation impossible
+        return self.theta_p.marginal_ll() + self.theta_s.marginal_ll()
 
 
 class ParallelSegmentationModel(object):
@@ -119,6 +130,12 @@ class ParallelSegmentationModel(object):
             s.start()
             words = [w for i, w in enumerate(self.corpus) if self._processor_indicators[i] == gid]
             iq.put(words)
+
+    def decode(self, word):
+        analyses = self.seg_mappings[self.word_vocabulary[word]]
+        probs = [self.base.marginal_prob(*a) for a in analyses]
+        _, (p, s) = max(zip(probs, analyses))
+        return self.prefix_vocabulary[p], self.suffix_vocabulary[s]
 
     def resample(self, processors=False):
         """Run the sampler for the parallelized model."""
@@ -149,18 +166,26 @@ class ParallelSegmentationModel(object):
             old_ccs = [self._counts_of_counts(tables) for tables in slave_tables]
             numer = sum(math.lgamma(v+1) for ccs in new_ccs for v in ccs.itervalues())
             denom = sum(math.lgamma(v+1) for ccs in old_ccs for v in ccs.itervalues())
-            logging.info('%f - %f = %f', numer, denom, numer - denom)
             ratio = math.exp(numer - denom)
-            logging.info('%f', ratio)
             accept_prob = min(1.0, ratio)
     
             accept = random.random() < accept_prob
             if accept:
-                logging.info('Resampling processor indicators')
+                logging.info('LL= %f', self._log_likelihood(*new_tables))
+            else:
+                logging.info('LL= %f', self._log_likelihood(*slave_tables))
 
             for i, (_, iq, _) in enumerate(self._slaves):
                 iq.put(accept)
                 iq.put(new_tables[i])
+
+    def _log_likelihood(self, *tables):
+        tables = [t for ts in tables for t in ts]
+        ntables = len(tables)
+        ncustomers = sum(c for _, c in tables)
+        return (math.lgamma(self.alpha) - math.lgamma(self.alpha + ncustomers)
+                + sum(math.lgamma(c) for _, c in tables)
+                + ntables * math.log(self.alpha) + self.base.log_likelihood())
 
     def _counts_of_counts(self, tables):
         return Counter(c for _, c in tables)
