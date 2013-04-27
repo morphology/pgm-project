@@ -7,7 +7,7 @@ from vpyp.prob import mult_sample
 
 class CRPSlave(CRP, multiprocessing.Process):
     def __init__(self, alpha, base, seg_mappings, gid, iq, oq):
-        CRP.__init__(self) # these two lines are bad, but okay for now
+        CRP.__init__(self) # TODO fix hardcoded initialization
         multiprocessing.Process.__init__(self)
 
         self.alpha = alpha
@@ -80,7 +80,7 @@ class CRPSlave(CRP, multiprocessing.Process):
                             self.tables[dish] = []
                         self.tables[dish].append(c)
                         self.ncustomers[dish] = self.ncustomers.get(dish, 0) + c
-                        
+
             else:
                 base = parcel
                 self.base = base

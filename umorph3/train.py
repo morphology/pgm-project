@@ -47,7 +47,7 @@ def main():
                  len(corpus), len(word_vocabulary), len(prefix_vocabulary), len(suffix_vocabulary))
 
     logging.info('Starting %d processes', n_processors)
-    model = ParallelSegmentationModel(0.1, 1e-3, 1e-3, corpus, word_vocabulary,
+    model = ParallelSegmentationModel(0.1, 1e-6, 1e-4, corpus, word_vocabulary,
                                       prefix_vocabulary, suffix_vocabulary, n_processors)
 
     run_sampler(model, 1000)

@@ -38,6 +38,7 @@ class Multinomial(object):
 
     def resample(self):
         self.theta = self.prior.sample(self.counts)
+        #self.theta = [self.marginal_prob(k) for k in xrange(self.K)]
 
     def marginal_ll(self):
         ll = (math.lgamma(self.K * self.prior.alpha) - math.lgamma(self.K * self.prior.alpha + self.N)
@@ -171,9 +172,9 @@ class ParallelSegmentationModel(object):
     
             accept = random.random() < accept_prob
             if accept:
-                logging.info('LL= %f', self._log_likelihood(*new_tables))
+                logging.info('LL= %f\tBaseLL= %f', *self._log_likelihood(*new_tables))
             else:
-                logging.info('LL= %f', self._log_likelihood(*slave_tables))
+                logging.info('LL= %f\tBaseLL= %f', *self._log_likelihood(*slave_tables))
 
             for i, (_, iq, _) in enumerate(self._slaves):
                 iq.put(accept)
@@ -183,9 +184,11 @@ class ParallelSegmentationModel(object):
         tables = [t for ts in tables for t in ts]
         ntables = len(tables)
         ncustomers = sum(c for _, c in tables)
-        return (math.lgamma(self.alpha) - math.lgamma(self.alpha + ncustomers)
-                + sum(math.lgamma(c) for _, c in tables)
-                + ntables * math.log(self.alpha) + self.base.log_likelihood())
+        ll = (math.lgamma(self.alpha) - math.lgamma(self.alpha + ncustomers)
+              + sum(math.lgamma(c) for _, c in tables)
+              + ntables * math.log(self.alpha))
+        base_ll = self.base.log_likelihood()
+        return ll, base_ll
 
     def _counts_of_counts(self, tables):
         return Counter(c for _, c in tables)
