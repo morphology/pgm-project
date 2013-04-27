@@ -33,30 +33,37 @@ def run_sampler(model, n_iter):
 def main():
     logging.basicConfig(level=logging.INFO, format='%(message)s')
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--processors', help='number of slaves to use', type=int, default=4)
+    parser = argparse.ArgumentParser(description='Train segmentation model')
+    parser.add_argument('-i', '--n_iter', type=int, required=True,
+                        help='Number of iterations')
+    parser.add_argument('--alpha_p', type=float, default=0.001,
+                        help='Smoothing parameter for prefix Dirichlet prior')
+    parser.add_argument('--alpha_s', type=float, default=0.001,
+                        help='Smoothing parameter for suffix Dirichlet prior')
+    parser.add_argument('--strength', '-t', type=float, default=1e-6,
+                        help='DP prior stength')
+    parser.add_argument('--processors', '-p', type=int, default=mp.cpu_count(),
+                        help='Number of processors to use')
     args = parser.parse_args()
-    n_processors = args.processors if args.processors else mp.cpu_count()
 
     word_vocabulary = Vocabulary(start_stop=False)
-    corpus = [word_vocabulary[line.decode('utf8').strip()] for line in sys.stdin
-              if len(line.decode('utf8').strip()) > 1]
+    corpus = [word_vocabulary[line.decode('utf8').strip()] for line in sys.stdin if len(line.decode('utf8').strip()) > 1]
     prefix_vocabulary, suffix_vocabulary = segment.affixes(word_vocabulary)
 
     logging.info('%d tokens / %d types / %d prefixes / %d suffixes',
                  len(corpus), len(word_vocabulary), len(prefix_vocabulary), len(suffix_vocabulary))
 
-    logging.info('Starting %d processes', n_processors)
-    model = ParallelSegmentationModel(0.1, 1e-6, 1e-4, corpus, word_vocabulary,
-                                      prefix_vocabulary, suffix_vocabulary, n_processors)
+    logging.info('Starting %d processes', args.processors)
+    model = ParallelSegmentationModel(args.strength, args.alpha_p, args.alpha_s, corpus, word_vocabulary,
+                                      prefix_vocabulary, suffix_vocabulary, args.processors)
 
-    run_sampler(model, 1000)
+    run_sampler(model, args.n_iter)
 
     model.shutdown()
 
     for word in word_vocabulary:
         p, s = model.decode(word)
-        print(u'{}\t_\t{}\t{}'.format(word, p, s))
+        print(u'{}\t_\t{}\t{}'.format(word, p, s).encode('utf8'))
 
 
 if __name__ == '__main__':

@@ -84,10 +84,37 @@ class CRPSlave(CRP, multiprocessing.Process):
             else:
                 base = parcel
                 self.base = base
+
+                # resample table assignments
                 for i, (w, p, s) in enumerate(analyses):
                     self.decrement(w, p, s)
                     w, p, s = self.increment(w)
                     analyses[i] = (w, p, s)
+
+                # resample table dishes
+                new_analyses = []
+                new_tables = {}
+                new_ncustomers = {}
+                for (w, old_p, old_s), tables in self.tables.iteritems():
+                    for c in tables:
+                        self.p_counts[old_p] -= 1
+                        self.s_counts[old_s] -= 1
+                        
+                        p, s = mult_sample(((p, s), self.base.prob(p, s)) for p, s in self.seg_mappings[w])
+                        self.p_counts[p] += 1
+                        self.s_counts[s] += 1
+
+                        if (w, p, s) not in new_tables:
+                            new_tables[w, p, s] = []
+                            new_ncustomers[w, p, s] = 0
+                        new_tables[w, p, s].append(c)
+                        new_ncustomers[w, p, s] += c
+                        new_analyses.extend([(w, p, s)] * c)
+
+                analyses = new_analyses
+                self.tables = new_tables
+                self.ncustomers = new_ncustomers
+
                 self.oq.put((self.p_counts, self.s_counts))
 
     def __repr__(self):
