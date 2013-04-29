@@ -3,6 +3,7 @@ import argparse
 import logging
 import math
 import heapq
+import time
 from itertools import izip
 from vpyp.corpus import Vocabulary
 from model import segmentations, SegmentationModel
@@ -77,7 +78,10 @@ def main():
     model = SegmentationModel(args.strength, args.alpha_p, args.alpha_s,
             word_vocabulary, prefix_vocabulary, suffix_vocabulary)
 
+    t_start = time.time()
     run_sampler(model, args.n_iter, corpus)
+    runtime = time.time() - t_start
+    logging.info('Sampler ran for {:.3f} seconds', runtime)
 
     show_analyses(model)
 

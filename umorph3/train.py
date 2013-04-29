@@ -5,6 +5,7 @@ import multiprocessing as mp
 import random
 import segment
 import sys
+import time
 from model import ParallelSegmentationModel
 from itertools import izip
 from vpyp.corpus import Vocabulary
@@ -59,7 +60,10 @@ def main():
     model = ParallelSegmentationModel(args.strength, args.alpha_p, args.alpha_s, corpus, word_vocabulary,
                                       prefix_vocabulary, suffix_vocabulary, args.processors)
 
+    t_start = time.time()
     run_sampler(model, args.n_iter)
+    runtime = time.time() - t_start
+    logging.info('Sampler ran for {:.3f} seconds', runtime)
 
     model.shutdown()
 
