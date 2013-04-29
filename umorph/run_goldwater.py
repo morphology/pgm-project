@@ -5,7 +5,7 @@ import math
 import sys
 import time
 from vpyp.corpus import Vocabulary
-from golwater import pyp, LexiconModel, word_splits
+from golwater import dirichlet_process, LexiconModel, word_splits
 
 def run_sampler(model, corpus, n_iter):
     for w in corpus:
@@ -52,10 +52,8 @@ def main():
             help='Smoothing parameter for stem Dirichlet prior')
     parser.add_argument('--alpha_f', '-af', type=float, default=0.001,
             help='Smoothing parameter for suffix Dirichlet prior')
-    parser.add_argument('--discount', '-d', type=float, default=0.1,
-            help='PY prior discount')
     parser.add_argument('--strength', '-t', type=float, default=1e-6,
-            help='PY prior stength')
+            help='DP prior stength')
     parser.add_argument('--types', action='store_true',
             help='Run model on types instead of tokens')
     parser.add_argument('--marginalize', action='store_true',
@@ -83,7 +81,7 @@ def main():
         model = lexicon_model
         corpus = range(len(word_vocabulary)) # corpus = lexicon
     else:
-        model = pyp(lexicon_model, args.discount, args.strength) # adaptor
+        model = dirichlet_process(lexicon_model, args.strength) # adaptor
 
     # Run the Gibbs sampler
     t_start = time.time()

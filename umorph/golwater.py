@@ -1,11 +1,11 @@
 import random
 from itertools import groupby
 from vpyp.prob import mult_sample, remove_random, SparseDirichletMultinomial
-from vpyp.prior import GammaPrior, PYPPrior
-from vpyp.pyp import PYP
+from vpyp.prior import GammaPrior
+from vpyp.pyp import DP
 
 dirichlet_multinomial = lambda K, alpha: SparseDirichletMultinomial(K, GammaPrior(1, 1, alpha))
-pyp = lambda base, discount, strength: PYP(base, PYPPrior(1, 1, 1, 1, discount, strength))
+dirichlet_process = lambda base, strength: DP(base, GammaPrior(1, 1, strength))
 
 def word_splits(word):
     # en-ptb: allow NULL suffix but not prefix
