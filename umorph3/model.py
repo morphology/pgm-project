@@ -121,6 +121,8 @@ class ParallelSegmentationModel(object):
         self.suffix_vocabulary = s_vocabulary
         self.seg_mappings = segmentation_mapping(w_vocabulary, p_vocabulary, s_vocabulary)
         self.n_processors = n_processors
+        self._mh_steps = 0.0
+        self._mh_accepts = 0.0
 
         self._slaves = []
         self._processor_indicators = [random.randrange(self.n_processors) for _ in self.corpus]
@@ -138,6 +140,9 @@ class ParallelSegmentationModel(object):
         _, (p, s) = max(zip(probs, analyses))
         return self.prefix_vocabulary[p], self.suffix_vocabulary[s]
 
+    def acceptance_rate(self):
+        return self._mh_accepts / self._mh_steps
+
     def resample(self, processors=False):
         """Run the sampler for the parallelized model."""
         for p, iq, _ in self._slaves:
@@ -152,6 +157,7 @@ class ParallelSegmentationModel(object):
         self.base.resample()
 
         if processors:
+            self._mh_steps += 1
             slave_tables = []
             for _, iq, oq in self._slaves:
                 iq.put('send_tables')
@@ -172,9 +178,10 @@ class ParallelSegmentationModel(object):
     
             accept = random.random() < accept_prob
             if accept:
-                logging.info('LL= %f\tBaseLL= %f', *self._log_likelihood(*new_tables))
+                self._mh_accepts += 1
+                logging.info('LL= %f\tCRPLL= %f\tBaseLL= %f', *self._log_likelihood(*new_tables))
             else:
-                logging.info('LL= %f\tBaseLL= %f', *self._log_likelihood(*slave_tables))
+                logging.info('LL= %f\tCRPLL= %f\tBaseLL= %f', *self._log_likelihood(*slave_tables))
 
             for i, (_, iq, _) in enumerate(self._slaves):
                 iq.put(accept)
@@ -184,11 +191,11 @@ class ParallelSegmentationModel(object):
         tables = [t for ts in tables for t in ts]
         ntables = len(tables)
         ncustomers = sum(c for _, c in tables)
-        ll = (math.lgamma(self.alpha) - math.lgamma(self.alpha + ncustomers)
+        crp_ll = (math.lgamma(self.alpha) - math.lgamma(self.alpha + ncustomers)
               + sum(math.lgamma(c) for _, c in tables)
               + ntables * math.log(self.alpha))
         base_ll = self.base.log_likelihood()
-        return ll, base_ll
+        return crp_ll+base_ll, crp_ll, base_ll
 
     def _counts_of_counts(self, tables):
         return Counter(c for _, c in tables)

@@ -24,6 +24,8 @@ def run_sampler(model, n_iter):
 
         processors = True if it % 10 == 0 else False
         model.resample(processors)
+        if processors:
+            logging.info('MH Acceptance Rate= %f', model.acceptance_rate())
 
         if it % 10 == 0:
             logging.info('Iteration %d/%d', it+1, n_iter)
