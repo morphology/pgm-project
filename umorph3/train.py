@@ -63,7 +63,7 @@ def main():
     t_start = time.time()
     run_sampler(model, args.n_iter)
     runtime = time.time() - t_start
-    logging.info('Sampler ran for {:.3f} seconds', runtime)
+    logging.info('Sampler ran for %f seconds', runtime)
 
     model.shutdown()
 

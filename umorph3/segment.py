@@ -2,7 +2,7 @@ from itertools import chain
 from vpyp.corpus import Vocabulary
 
 def segmentations(word):
-    for k in range(1, len(word)):
+    for k in range(1, len(word)+1):
         yield word[:k], word[k:]
 
 def affixes(words):
