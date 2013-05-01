@@ -2,13 +2,12 @@ import argparse
 import heapq
 import logging
 import multiprocessing as mp
-import random
-import segment
 import sys
 import time
-from model import ParallelSegmentationModel
 from itertools import izip
 from vpyp.corpus import Vocabulary
+from model import ParallelSegmentationModel
+from umorph.segment import affixes
 
 
 def show_top(model):
@@ -25,11 +24,10 @@ def run_sampler(model, n_iter):
 
         processors = True if it % 10 == 0 else False
         model.resample(processors)
-        if processors:
-            logging.info('MH Acceptance Rate= %f', model.acceptance_rate())
 
         if it % 10 == 0:
             logging.info('Iteration %d/%d', it+1, n_iter)
+            logging.info('Model: %s', model)
             show_top(model)
 
 
@@ -47,18 +45,20 @@ def main():
                         help='DP prior stength')
     parser.add_argument('--processors', '-p', type=int, default=mp.cpu_count(),
                         help='Number of processors to use')
+    parser.add_argument('-mh', type=int, required=True,
+                        help='Number of MH steps per global iteration')
     args = parser.parse_args()
 
     word_vocabulary = Vocabulary(start_stop=False)
-    corpus = [word_vocabulary[line.decode('utf8').strip()] for line in sys.stdin if len(line.decode('utf8').strip()) > 1]
-    prefix_vocabulary, suffix_vocabulary = segment.affixes(word_vocabulary)
+    corpus = [word_vocabulary[line.decode('utf8').strip()] for line in sys.stdin]
+    prefix_vocabulary, suffix_vocabulary = affixes(word_vocabulary)
 
     logging.info('%d tokens / %d types / %d prefixes / %d suffixes',
                  len(corpus), len(word_vocabulary), len(prefix_vocabulary), len(suffix_vocabulary))
 
     logging.info('Starting %d processes', args.processors)
     model = ParallelSegmentationModel(args.strength, args.alpha_p, args.alpha_s, corpus, word_vocabulary,
-                                      prefix_vocabulary, suffix_vocabulary, args.processors)
+                                      prefix_vocabulary, suffix_vocabulary, args.processors, args.mh)
 
     t_start = time.time()
     run_sampler(model, args.n_iter)
@@ -69,7 +69,7 @@ def main():
 
     for word in word_vocabulary:
         p, s = model.decode(word)
-        print(u'{}\t_\t{}\t{}'.format(word, p, s).encode('utf8'))
+        print(u'{}\t{}\t{}'.format(word, p, s).encode('utf8'))
 
 
 if __name__ == '__main__':

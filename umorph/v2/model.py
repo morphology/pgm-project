@@ -3,10 +3,7 @@ import random
 from collections import Counter
 from vpyp.pyp import CRP
 from vpyp.prob import mult_sample
-
-def segmentations(word):
-    for k in range(0, len(word)+1):
-        yield word[:k], word[k:]
+from umorph.segment import segmentations
 
 class Multinomial:
     """Non-collapsed multinomial distribution sampled from a prior"""
@@ -192,8 +189,8 @@ class SegmentationModel(CRP):
 
     def log_likelihood(self):
         """
-        \frac{\Gamma(\alpha)}{\Gamma(\alpha + N)}
-        \prod_{t \in tables} \alpha \Gamma(|t|)
+        LL = \frac{\prod_{t \in tables} \alpha p_0(l_t) \times 1 \times \dots (c_t - 1)}{\prod_{k=0}^{N-1} (\alpha + k)}
+           = p_{\text{base}} \times \frac{\Gamma(\alpha)}{\Gamma(\alpha + N)}\prod_{t \in tables} \alpha \times c_t!
         """
         return (math.lgamma(self.alpha)
                 - math.lgamma(self.alpha + self.total_customers)

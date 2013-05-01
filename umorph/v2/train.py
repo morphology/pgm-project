@@ -1,12 +1,12 @@
 import sys
 import argparse
 import logging
-import math
 import heapq
 import time
 from itertools import izip
 from vpyp.corpus import Vocabulary
-from model import segmentations, SegmentationModel
+from model import SegmentationModel
+from umorph.segment import affixes
 
 def show_top(model):
     top_prefixes = heapq.nlargest(10, izip(model.base.theta_p.counts, model.prefix_vocabulary))
@@ -26,9 +26,10 @@ def run_sampler(model, n_iter, words):
     for it in xrange(n_iter):
         if it % 10 == 0:
             logging.info('Iteration %d/%d', it+1, n_iter)
-            LL = model.log_likelihood()
-            ppl = math.exp(-LL/len(words))
-            logging.info('LL=%.0f ppl=%.0f', LL, ppl)
+            ll = model.log_likelihood()
+            base_ll = model.base.log_likelihood()
+            crp_ll = ll - base_ll
+            logging.info('LL=%.0f BaseLL=%.0f CRPLL=%.0f', ll, base_ll, crp_ll)
             show_top(model)
         # 1. resample seat assignments given labels, H
         for w in words:
@@ -45,7 +46,7 @@ def show_analyses(model):
         p, s = model.decode(w)
         prefix = model.prefix_vocabulary[p]
         suffix = model.suffix_vocabulary[s]
-        print(u'{}\t_\t{}\t{}'.format(word, prefix, suffix).encode('utf8'))
+        print(u'{}\t{}\t{}'.format(word, prefix, suffix).encode('utf8'))
 
 def main():
     logging.basicConfig(level=logging.INFO, format='%(message)s')
@@ -64,13 +65,8 @@ def main():
     word_vocabulary = Vocabulary(start_stop=False)
     corpus = [word_vocabulary[line.decode('utf8').strip()] for line in sys.stdin]
 
-    # Compute all the possible prefixes
-    prefixes = set(prefix for word in word_vocabulary for prefix, suffix in segmentations(word))
-    prefix_vocabulary = Vocabulary(start_stop=False, init=prefixes)
-
-    # Compute all the possible suffixes
-    suffixes = set(suffix for word in word_vocabulary for prefix, suffix in segmentations(word))
-    suffix_vocabulary = Vocabulary(start_stop=False, init=suffixes)
+    # Compute all the possible prefixes, suffixes
+    prefix_vocabulary, suffix_vocabulary = affixes(word_vocabulary)
 
     logging.info('%d tokens / %d types / %d prefixes / %d suffixes',
             len(corpus), len(word_vocabulary), len(prefix_vocabulary), len(suffix_vocabulary))

@@ -1,9 +1,5 @@
-import logging
 import math
-import multiprocessing
 import random
-from collections import Counter
-
 
 class Multinomial(object):
     """Non-collapsed multinomial distribution sampled from a prior"""
@@ -104,4 +100,3 @@ class MultinomialProduct(object):
 
     def log_likelihood(self):
         return self.theta_p.marginal_ll() + self.theta_s.marginal_ll()
-
