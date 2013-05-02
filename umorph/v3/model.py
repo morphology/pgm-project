@@ -73,7 +73,7 @@ class ParallelSegmentationModel(object):
                 denom = sum(math.lgamma(v+1) for ccs in old_ccs for v in ccs.itervalues())
                 ratio = math.exp(numer - denom)
                 accept_prob = min(1.0, ratio)
-        
+
                 accept = random.random() < accept_prob
                 if accept:
                     mh_accepts += 1
