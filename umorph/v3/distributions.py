@@ -32,7 +32,6 @@ class Multinomial(object):
 
     def resample(self):
         self.theta = self.prior.sample(self.counts)
-        #self.theta = [self.marginal_prob(k) for k in xrange(self.K)]
 
     def marginal_ll(self):
         ll = (math.lgamma(self.K * self.prior.alpha) - math.lgamma(self.K * self.prior.alpha + self.N)
@@ -87,7 +86,7 @@ class MultinomialProduct(object):
         return self.theta_p.prob(p) * self.theta_s.prob(s)
     
     def marginal_prob(self, p, s):
-        return self.theta_p.marginal_prob(p) + self.theta_s.marginal_prob(s)
+        return self.theta_p.marginal_prob(p) * self.theta_s.marginal_prob(s)
 
     def resample(self):
         self.theta_p.resample()

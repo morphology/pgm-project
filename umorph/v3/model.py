@@ -79,7 +79,7 @@ class ParallelSegmentationModel(object):
 
             acceptance_rate = mh_accepts/mh_steps
             logging.info('MH Acceptance Rate: %f', acceptance_rate)
-            logging.info('LL= %f\tCRPLL= %f\tBaseLL= %f', *self._log_likelihood(*new_tables))
+            logging.info('LL= %.0f\tCRPLL= %.0f\tBaseLL= %.0f', *self._log_likelihood(*new_tables))
 
             total_customers = sum(sum(c for _, c in tables) for tables in old_tables)
             n_tables = sum(len(tables) for tables in old_tables)
