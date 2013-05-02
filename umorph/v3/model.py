@@ -1,5 +1,6 @@
 import logging
 import math
+import time
 import multiprocessing
 import random
 from collections import Counter
@@ -42,11 +43,21 @@ class ParallelSegmentationModel(object):
             iq.put(self.base)
 
         self.base.reset()
-
+        
+        ## Local
+        logging.info("Local step")
+        local_start = time.time()
         for p, _, oq in self._slaves:
             p_counts, s_counts = oq.get()
             self.base.update(p_counts, s_counts)
+        local_end = time.time()
+        local_time = local_end - local_start
+        logging.info('Local time: %f seconds', local_time)
+        ## End local
 
+        ## Global
+        logging.info("Global step")
+        global_start = time.time()
         self.base.resample()
 
         if processors:
@@ -77,20 +88,33 @@ class ParallelSegmentationModel(object):
                     mh_accepts += 1
                     old_tables = new_tables
 
+            ## End Global
+
             acceptance_rate = mh_accepts/mh_steps
-            logging.info('MH Acceptance Rate: %f', acceptance_rate)
-            logging.info('LL= %.0f\tCRPLL= %.0f\tBaseLL= %.0f', *self._log_likelihood(*new_tables))
 
             total_customers = sum(sum(c for _, c in tables) for tables in old_tables)
             n_tables = sum(len(tables) for tables in old_tables)
             n_dishes = len(set(dish for tables in old_tables for dish, _ in tables))
+
+            for i, (_, iq, _) in enumerate(self._slaves):
+                iq.put(old_tables[i])
+
+            global_end = time.time()
+            global_time = global_end - global_start
+            logging.info('Global time_proc: %f seconds', global_time)
+
+            logging.info('MH Acceptance Rate: %f', acceptance_rate)
+            logging.info('LL= %.0f\tCRPLL= %.0f\tBaseLL= %.0f', *self._log_likelihood(*new_tables))
             logging.info(('ParallelSegmentationModel(alpha={self.alpha}, base={self.base}, '
                     '#customers={total_customers}, #tables={n_tables}, '
                     '#dishes={n_dishes})').format(self=self, total_customers=total_customers,
                             n_tables=n_tables, n_dishes=n_dishes))
+        
+        if not processors:
+            global_end = time.time()
+            global_time = global_end - global_start
+            logging.info('Global time: %f seconds', global_time)
 
-            for i, (_, iq, _) in enumerate(self._slaves):
-                iq.put(old_tables[i])
 
     def _log_likelihood(self, *tables):
         tables = [t for ts in tables for t in ts]
