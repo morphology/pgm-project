@@ -45,6 +45,9 @@ class Multinomial(object):
             for k, c in enumerate(self.counts) if c > 0)
             + self.prior.log_likelihood(self.theta))
 
+    def __repr__(self):
+        return 'Multinomial(K={self.K}, N={self.N}) ~ {self.prior}'.format(self=self)
+
 
 class Dirichlet(object):
     """A Dirichlet distribution for sampling multinomials"""
@@ -61,6 +64,9 @@ class Dirichlet(object):
         K = len(theta)
         return (math.lgamma(K * self.alpha) - K * math.lgamma(self.alpha)
                 + sum((self.alpha - 1) * math.log(t) for t in theta))
+
+    def __repr__(self):
+        return 'Dirichlet(alpha={self.alpha})'.format(self=self)
 
 
 class MultinomialProduct(object):
@@ -100,3 +106,6 @@ class MultinomialProduct(object):
 
     def log_likelihood(self):
         return self.theta_p.marginal_ll() + self.theta_s.marginal_ll()
+
+    def __repr__(self):
+        return 'p ~ {self.theta_p}, s ~ {self.theta_s}'.format(self=self)

@@ -10,8 +10,6 @@ from distributions import MultinomialProduct
 class ParallelSegmentationModel(object):
     def __init__(self, alpha, alpha_p, alpha_s, corpus, w_vocabulary, p_vocabulary, s_vocabulary, n_processors, n_mh):
         self.alpha = float(alpha)
-        self.alpha_p = alpha_p
-        self.alpha_s = alpha_s
         self.base = MultinomialProduct(len(p_vocabulary), alpha_p, len(s_vocabulary), alpha_s)
         self.base.resample()
         self.corpus = corpus
@@ -82,6 +80,14 @@ class ParallelSegmentationModel(object):
             acceptance_rate = mh_accepts/mh_steps
             logging.info('MH Acceptance Rate: %f', acceptance_rate)
             logging.info('LL= %f\tCRPLL= %f\tBaseLL= %f', *self._log_likelihood(*new_tables))
+
+            total_customers = sum(sum(c for _, c in tables) for tables in old_tables)
+            n_tables = sum(len(tables) for tables in old_tables)
+            n_dishes = len(set(dish for tables in old_tables for dish, _ in tables))
+            logging.info(('ParallelSegmentationModel(alpha={self.alpha}, base={self.base}, '
+                    '#customers={total_customers}, #tables={n_tables}, '
+                    '#dishes={n_dishes})').format(self=self, total_customers=total_customers,
+                            n_tables=n_tables, n_dishes=n_dishes))
 
             for i, (_, iq, _) in enumerate(self._slaves):
                 iq.put(old_tables[i])

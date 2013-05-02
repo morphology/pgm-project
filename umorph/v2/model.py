@@ -46,6 +46,9 @@ class Multinomial:
                     for k in xrange(self.K))
                 - self.K * math.lgamma(self.prior.alpha))
 
+    def __repr__(self):
+        return 'Multinomial(K={self.K}, N={self.N}) ~ {self.prior}'.format(self=self)
+
 class Dirichlet:
     """A Dirichlet distribution for sampling multinomials"""
     def __init__(self, alpha):
@@ -61,6 +64,9 @@ class Dirichlet:
         K = len(theta)
         return (math.lgamma(K * self.alpha) - K * math.lgamma(self.alpha)
                 + sum((self.alpha - 1) * math.log(t) for t in theta))
+
+    def __repr__(self):
+        return 'Dirichlet(alpha={self.alpha})'.format(self=self)
 
 class MultProduct:
     """H(p, s) = theta_p(p) * theta_s(s)"""
@@ -90,6 +96,9 @@ class MultProduct:
         # return self.theta_p.log_likelihood() + self.theta_s.log_likelihood()
         return (self.theta_p.marginal_log_likelihood()
                 + self.theta_s.marginal_log_likelihood())
+
+    def __repr__(self):
+        return 'p ~ {self.theta_p}, s ~ {self.theta_s}'.format(self=self)
 
 class SegmentationModel(CRP):
     """SegmentationModel ~ DP(alpha, H)"""
@@ -198,3 +207,8 @@ class SegmentationModel(CRP):
                 + sum(math.lgamma(c) for tables in self.tables.itervalues()
                     for c in tables)
                 + self.base.log_likelihood())
+
+    def __repr__(self):
+        return ('SegmentationModel(alpha={self.alpha}, base={self.base}, '
+                '#customers={self.total_customers}, #tables={self.ntables}, '
+                '#dishes={V})').format(self=self, V=len(self.tables))
