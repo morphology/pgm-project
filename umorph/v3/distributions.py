@@ -3,11 +3,12 @@ import random
 
 class Multinomial(object):
     """Non-collapsed multinomial distribution sampled from a prior"""
-    def __init__(self, K, prior):
+    def __init__(self, K, prior, collapsed=False):
         self.prior = prior
         self.K = K
         self.counts = [0]*K
         self.N = 0
+        self.collapsed = collapsed
 
     def increment(self, k, c=1):
         assert (0 <= k < self.K)
@@ -20,7 +21,10 @@ class Multinomial(object):
         self.N -= c
 
     def prob(self, k):
-        return self.theta[k]
+        if self.collapsed:
+            return self.marginal_prob(k)
+        else:
+            return self.theta[k]
 
     def marginal_prob(self, k):
         return (float(self.counts[k] + self.prior.alpha)
@@ -34,6 +38,7 @@ class Multinomial(object):
             self.N += c
 
     def resample(self):
+        if self.collapsed: return
         self.theta = self.prior.sample(self.counts)
 
     def marginal_ll(self):
@@ -41,11 +46,6 @@ class Multinomial(object):
               + sum(math.lgamma(self.counts[k] + self.prior.alpha) for k in xrange(self.K))
               - self.K * math.lgamma(self.prior.alpha))
         return ll
-
-    def log_likelihood(self):
-        return (math.lgamma(self.N + 1) + sum(c * math.log(self.theta[k]) - math.lgamma(c + 1)
-            for k, c in enumerate(self.counts) if c > 0)
-            + self.prior.log_likelihood(self.theta))
 
     def __repr__(self):
         return 'Multinomial(K={self.K}, N={self.N}) ~ {self.prior}'.format(self=self)
@@ -62,20 +62,15 @@ class Dirichlet(object):
         norm = sum(sample)
         return [v/norm for v in sample]
 
-    def log_likelihood(self, theta):
-        K = len(theta)
-        return (math.lgamma(K * self.alpha) - K * math.lgamma(self.alpha)
-                + sum((self.alpha - 1) * math.log(t) for t in theta))
-
     def __repr__(self):
         return 'Dirichlet(alpha={self.alpha})'.format(self=self)
 
 
 class MultinomialProduct(object):
     """H(p, s) = theta_p(p) * theta_s(s)"""
-    def __init__(self, n_prefixes, alpha_p, n_suffixes, alpha_s):
-        self.theta_p = Multinomial(n_prefixes, Dirichlet(alpha_p))
-        self.theta_s = Multinomial(n_suffixes, Dirichlet(alpha_s))
+    def __init__(self, n_prefixes, alpha_p, n_suffixes, alpha_s, collapsed=False):
+        self.theta_p = Multinomial(n_prefixes, Dirichlet(alpha_p), collapsed)
+        self.theta_s = Multinomial(n_suffixes, Dirichlet(alpha_s), collapsed)
 
     def increment(self, p, s):
         self.theta_p.increment(p)

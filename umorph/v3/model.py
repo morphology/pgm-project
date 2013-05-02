@@ -9,9 +9,9 @@ from slave import CRPSlave
 from distributions import MultinomialProduct
 
 class ParallelSegmentationModel(object):
-    def __init__(self, alpha, alpha_p, alpha_s, corpus, w_vocabulary, p_vocabulary, s_vocabulary, n_processors, n_mh):
+    def __init__(self, alpha, alpha_p, alpha_s, corpus, w_vocabulary, p_vocabulary, s_vocabulary, n_processors, n_mh, collapsed):
         self.alpha = float(alpha)
-        self.base = MultinomialProduct(len(p_vocabulary), alpha_p, len(s_vocabulary), alpha_s)
+        self.base = MultinomialProduct(len(p_vocabulary), alpha_p, len(s_vocabulary), alpha_s, collapsed)
         self.base.resample()
         self.corpus = corpus
         self.word_vocabulary = w_vocabulary
@@ -43,7 +43,7 @@ class ParallelSegmentationModel(object):
         for p, iq, _ in self._slaves:
             iq.put(self.base)
 
-        logging.info('Local step')
+        #logging.info('Local step')
         local_start = time.time()
 
         # Receive and aggregate counts
@@ -56,12 +56,12 @@ class ParallelSegmentationModel(object):
 
         local_end = time.time()
         local_time = local_end - local_start
-        logging.info('Local time: %f seconds', local_time)
+        #logging.info('Local time: %f seconds', local_time)
 
         # Update the base
         self.base.update(total_p_counts, total_s_counts)
 
-        logging.info('Global step')
+        #logging.info('Global step')
         global_start = time.time()
 
         # Resample the base
@@ -108,7 +108,7 @@ class ParallelSegmentationModel(object):
 
             global_end = time.time()
             global_time = global_end - global_start
-            logging.info('Global time_proc: %f seconds', global_time)
+            #logging.info('Global time_proc: %f seconds', global_time)
 
             logging.info('MH Acceptance Rate: %f', acceptance_rate)
             logging.info('LL= %.0f\tCRPLL= %.0f\tBaseLL= %.0f', *self._log_likelihood(*new_tables))
@@ -120,7 +120,7 @@ class ParallelSegmentationModel(object):
         if not processors:
             global_end = time.time()
             global_time = global_end - global_start
-            logging.info('Global time: %f seconds', global_time)
+            #logging.info('Global time: %f seconds', global_time)
 
 
     def _log_likelihood(self, *tables):

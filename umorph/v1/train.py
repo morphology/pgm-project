@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 import argparse
 import logging
-import math
 import heapq
 import sys
 from vpyp.corpus import Vocabulary
@@ -27,15 +26,12 @@ def run_sampler(model, corpus, n_iter):
             model.decrement(w)
             model.increment(w)
         # base sampling
-        try:
-            model.resample_base()
-        except AttributeError:
-            pass
+        model.resample_base()
         if it % 10 == 9:
             logging.info('Iteration %d/%d', it+1, n_iter)
-            ll = model.log_likelihood(full=True)
-            ppl = math.exp(-ll/len(corpus))
-            logging.info('LL=%.0f ppl=%.0f', ll, ppl)
+            crp_ll = model.log_likelihood()
+            base_ll = model.base.log_likelihood()
+            logging.info('LL=%.0f\tCRPLL=%.0f\tBaseLL=%.0f', crp_ll+base_ll, crp_ll, base_ll)
             logging.info('Model: %s', model)
             show_top(model.base)
 
@@ -58,8 +54,6 @@ def main():
             help='Smoothing parameter for suffix Dirichlet prior')
     parser.add_argument('--strength', type=float, default=1e-6,
             help='DP prior stength')
-    parser.add_argument('--types', action='store_true',
-            help='Run model on types instead of tokens')
     args = parser.parse_args()
 
     # Read the training corpus
@@ -74,11 +68,7 @@ def main():
 
     lexicon_model = LexiconModel(args.alpha_p, args.alpha_s,
             word_vocabulary, prefix_vocabulary, suffix_vocabulary) # generator
-    if args.types:
-        model = lexicon_model
-        corpus = range(len(word_vocabulary)) # corpus = lexicon
-    else:
-        model = dirichlet_process(lexicon_model, args.strength) # adaptor
+    model = dirichlet_process(lexicon_model, args.strength) # adaptor
 
     # Run the Gibbs sampler
     run_sampler(model, corpus, args.n_iter)

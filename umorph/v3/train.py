@@ -46,6 +46,8 @@ def main():
                         help='Number of processors to use')
     parser.add_argument('-mh', type=int, required=True,
                         help='Number of MH steps per global iteration')
+    parser.add_argument('--collapse', action='store_true',
+                        help='Use approximate collapsed base')
     args = parser.parse_args()
 
     word_vocabulary = Vocabulary(start_stop=False)
@@ -57,7 +59,7 @@ def main():
 
     logging.info('Starting %d processes', args.processors)
     model = ParallelSegmentationModel(args.strength, args.alpha_p, args.alpha_s, corpus, word_vocabulary,
-                                      prefix_vocabulary, suffix_vocabulary, args.processors, args.mh)
+                                      prefix_vocabulary, suffix_vocabulary, args.processors, args.mh, args.collapse)
 
     t_start = time.time()
     run_sampler(model, args.n_iter)
