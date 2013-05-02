@@ -26,9 +26,12 @@ class Multinomial(object):
         return (float(self.counts[k] + self.prior.alpha)
                 / (self.N + self.K * self.prior.alpha))
 
-    def reset(self):
+    def update(self, counts):
         self.counts = [0]*self.K
         self.N = 0
+        for k, c in counts.iteritems():
+            self.counts[k] = c
+            self.N += c
 
     def resample(self):
         self.theta = self.prior.sample(self.counts)
@@ -92,16 +95,9 @@ class MultinomialProduct(object):
         self.theta_p.resample()
         self.theta_s.resample()
 
-    def reset(self):
-        self.theta_p.reset()
-        self.theta_s.reset()
-
     def update(self, p_counts, s_counts):
-        for k, c in p_counts.items():
-            self.theta_p.increment(k, c)
-
-        for k, c in s_counts.items():
-            self.theta_s.increment(k, c)
+        self.theta_p.update(p_counts)
+        self.theta_s.update(s_counts)
 
     def log_likelihood(self):
         return self.theta_p.marginal_ll() + self.theta_s.marginal_ll()

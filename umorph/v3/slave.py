@@ -1,3 +1,4 @@
+import logging
 import multiprocessing
 import random
 from collections import Counter
@@ -6,12 +7,11 @@ from vpyp.prob import mult_sample
 
 
 class CRPSlave(CRP, multiprocessing.Process):
-    def __init__(self, alpha, base, seg_mappings, gid, iq, oq):
+    def __init__(self, alpha, seg_mappings, gid, iq, oq):
         CRP.__init__(self) # TODO fix hardcoded initialization
         multiprocessing.Process.__init__(self)
 
         self.alpha = alpha
-        self.base = base
         self.seg_mappings = seg_mappings
         self.gid = gid
         self.iq = iq
@@ -80,8 +80,7 @@ class CRPSlave(CRP, multiprocessing.Process):
                     self.ncustomers[dish] = self.ncustomers.get(dish, 0) + c
 
             else:
-                base = parcel
-                self.base = base
+                self.base = parcel
 
                 # resample table assignments
                 for i, (w, p, s) in enumerate(analyses):

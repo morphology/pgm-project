@@ -25,7 +25,7 @@ class ParallelSegmentationModel(object):
         self._processor_indicators = [random.randrange(self.n_processors) for _ in self.corpus]
         for gid in xrange(self.n_processors):
             iq, oq = multiprocessing.Queue(), multiprocessing.Queue()
-            s = CRPSlave(self.alpha/self.n_processors, self.base, self.seg_mappings, gid, iq, oq)
+            s = CRPSlave(self.alpha/self.n_processors, self.seg_mappings, gid, iq, oq)
             self._slaves.append((s, iq, oq))
             s.start()
             words = [w for i, w in enumerate(self.corpus) if self._processor_indicators[i] == gid]
@@ -39,25 +39,32 @@ class ParallelSegmentationModel(object):
 
     def resample(self, processors=False):
         """Run the sampler for the parallelized model."""
+        # Send the base to slaves
         for p, iq, _ in self._slaves:
             iq.put(self.base)
 
-        self.base.reset()
-        
-        ## Local
-        logging.info("Local step")
+        logging.info('Local step')
         local_start = time.time()
+
+        # Receive and aggregate counts
+        total_p_counts = Counter()
+        total_s_counts = Counter()
         for p, _, oq in self._slaves:
             p_counts, s_counts = oq.get()
-            self.base.update(p_counts, s_counts)
+            total_p_counts += p_counts
+            total_s_counts += s_counts
+
         local_end = time.time()
         local_time = local_end - local_start
         logging.info('Local time: %f seconds', local_time)
-        ## End local
 
-        ## Global
-        logging.info("Global step")
+        # Update the base
+        self.base.update(total_p_counts, total_s_counts)
+
+        logging.info('Global step')
         global_start = time.time()
+
+        # Resample the base
         self.base.resample()
 
         if processors:
