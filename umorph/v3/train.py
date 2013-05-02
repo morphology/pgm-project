@@ -27,7 +27,6 @@ def run_sampler(model, n_iter):
 
         if it % 10 == 0:
             logging.info('Iteration %d/%d', it+1, n_iter)
-            logging.info('Model: %s', model)
             show_top(model)
 
 

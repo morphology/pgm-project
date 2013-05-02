@@ -29,7 +29,8 @@ def run_sampler(model, n_iter, words):
             ll = model.log_likelihood()
             base_ll = model.base.log_likelihood()
             crp_ll = ll - base_ll
-            logging.info('LL=%.0f BaseLL=%.0f CRPLL=%.0f', ll, base_ll, crp_ll)
+            logging.info('LL=%.0f\tCRPLL=%.0f\tBaseLL=%.0f', ll, base_ll, crp_ll)
+            logging.info('Model: %s', model)
             show_top(model)
         # 1. resample seat assignments given labels, H
         for w in words:
