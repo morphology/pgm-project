@@ -1,0 +1,16 @@
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.4\textwidth]{fig/v2}
+\caption{Reparametrized model}
+\label{fig:v1}
+\end{figure}
+
+\begin{align*}
+\theta_p & \sim \text{Dir}(\alpha_p) \\
+\theta_s & \sim \text{Dir}(\alpha_s) \\
+H(p, s) & = p(p \mid \theta_p) p(s \mid \theta_s) \\
+G & \sim \text{DP}\left(\alpha, H\right)\\
+\forall i \in \{1 \dots N\} \\
+(p_i, s_i) & \sim G \\
+w_i & = p_i+s_i
+\end{align*}
