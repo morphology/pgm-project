@@ -2,11 +2,11 @@ import argparse
 import heapq
 import logging
 import multiprocessing as mp
-import segment
 import sys
 import time
 from itertools import izip
 from vpyp.corpus import Vocabulary
+from umorph.segment import affixes
 from model import ParallelSegmentationModel
 
 
@@ -20,11 +20,12 @@ def show_top(model):
 
 
 def run_sampler(model, n_iter):
+    # Initialize H, G
+    model.initialize()
     for it in xrange(n_iter):
-
         processors = True if it % 10 == 0 else False
+        # Resample H, G
         model.resample(processors)
-
         if it % 10 == 0:
             logging.info('Iteration %d/%d', it+1, n_iter)
             show_top(model)
@@ -52,7 +53,7 @@ def main():
 
     word_vocabulary = Vocabulary(start_stop=False)
     corpus = [word_vocabulary[line.decode('utf8').strip()] for line in sys.stdin]
-    prefix_vocabulary, suffix_vocabulary = segment.affixes(word_vocabulary)
+    prefix_vocabulary, suffix_vocabulary = affixes(word_vocabulary)
 
     logging.info('%d tokens / %d types / %d prefixes / %d suffixes',
                  len(corpus), len(word_vocabulary), len(prefix_vocabulary), len(suffix_vocabulary))
