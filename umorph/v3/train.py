@@ -2,11 +2,11 @@ import argparse
 import heapq
 import logging
 import multiprocessing as mp
-import segment
 import sys
 import time
 from itertools import izip
 from vpyp.corpus import Vocabulary
+from umorph.segment import affixes
 from model import ParallelSegmentationModel
 
 
@@ -53,7 +53,7 @@ def main():
 
     word_vocabulary = Vocabulary(start_stop=False)
     corpus = [word_vocabulary[line.decode('utf8').strip()] for line in sys.stdin]
-    prefix_vocabulary, suffix_vocabulary = segment.affixes(word_vocabulary)
+    prefix_vocabulary, suffix_vocabulary = affixes(word_vocabulary)
 
     logging.info('%d tokens / %d types / %d prefixes / %d suffixes',
                  len(corpus), len(word_vocabulary), len(prefix_vocabulary), len(suffix_vocabulary))
