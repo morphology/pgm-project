@@ -2,7 +2,6 @@ import argparse
 import heapq
 import logging
 import multiprocessing as mp
-import random
 import segment
 import sys
 from model import ParallelSegmentationModel
