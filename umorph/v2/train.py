@@ -19,19 +19,11 @@ def show_top(model):
 def run_sampler(model, n_iter, words):
     logging.info('Initializing')
     # Initialize H
-    model.base.resample()
+    model.base.initialize()
     # Initialize G (labels & assignments)
     for w in words:
         model.increment(w, initialize=True)
     for it in xrange(n_iter):
-        if it % 10 == 0:
-            logging.info('Iteration %d/%d', it+1, n_iter)
-            ll = model.log_likelihood()
-            base_ll = model.base.log_likelihood()
-            crp_ll = ll - base_ll
-            logging.info('LL=%.0f\tCRPLL=%.0f\tBaseLL=%.0f', ll, base_ll, crp_ll)
-            logging.info('Model: %s', model)
-            show_top(model)
         # 1. resample seat assignments given labels, H
         for w in words:
             model.decrement(w)
@@ -40,7 +32,14 @@ def run_sampler(model, n_iter, words):
         model.resample_labels()
         # 3. resample H given table labels
         model.base.resample()
-
+        if it % 10 == 0:
+            logging.info('Iteration %d/%d', it+1, n_iter)
+            ll = model.log_likelihood()
+            base_ll = model.base.log_likelihood()
+            crp_ll = ll - base_ll
+            logging.info('LL=%.0f\tCRPLL=%.0f\tBaseLL=%.0f', ll, crp_ll, base_ll)
+            logging.info('Model: %s', model)
+            show_top(model)
 
 def show_analyses(model):
     for w, word in enumerate(model.word_vocabulary):
@@ -61,6 +60,7 @@ def main():
             help='Smoothing parameter for suffix Dirichlet prior')
     parser.add_argument('--strength', '-t', type=float, default=1e-6,
             help='DP prior stength')
+    parser.add_argument('--collapse', action='store_true')
     args = parser.parse_args()
 
     word_vocabulary = Vocabulary(start_stop=False)
@@ -73,7 +73,7 @@ def main():
             len(corpus), len(word_vocabulary), len(prefix_vocabulary), len(suffix_vocabulary))
 
     model = SegmentationModel(args.strength, args.alpha_p, args.alpha_s,
-            word_vocabulary, prefix_vocabulary, suffix_vocabulary)
+            word_vocabulary, prefix_vocabulary, suffix_vocabulary, args.collapse)
 
     t_start = time.time()
     run_sampler(model, args.n_iter, corpus)

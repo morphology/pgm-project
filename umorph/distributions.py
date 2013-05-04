@@ -2,11 +2,11 @@ import math
 import random
 
 class Multinomial(object):
-    """Non-collapsed multinomial distribution sampled from a prior"""
+    """Multinomial distribution sampled from a Dirichlet prior (collapsed/non-collapsed)"""
     def __init__(self, K, prior, collapsed=False):
         self.prior = prior
         self.K = K
-        self.counts = [0]*K
+        self.counts = [0] * K
         self.N = 0
         self.collapsed = collapsed
 
@@ -37,18 +37,26 @@ class Multinomial(object):
             self.counts[k] = c
             self.N += c
 
+    def initialize(self):
+        if not self.collapsed:
+            self.theta = [1/float(self.K)] * self.K
+
     def resample(self):
-        if self.collapsed: return
-        self.theta = self.prior.sample(self.counts)
+        if not self.collapsed:
+            self.theta = self.prior.sample(self.counts)
 
     def marginal_ll(self):
-        ll = (math.lgamma(self.K * self.prior.alpha) - math.lgamma(self.K * self.prior.alpha + self.N)
-              + sum(math.lgamma(self.counts[k] + self.prior.alpha) for k in xrange(self.K))
-              - self.K * math.lgamma(self.prior.alpha))
-        return ll
+        return (math.lgamma(self.K * self.prior.alpha)
+                - math.lgamma(self.K * self.prior.alpha + self.N)
+                + sum(math.lgamma(self.counts[k] + self.prior.alpha)
+                    for k in xrange(self.K))
+                - self.K * math.lgamma(self.prior.alpha))
 
     def __repr__(self):
-        return 'Multinomial(K={self.K}, N={self.N}) ~ {self.prior}'.format(self=self)
+        if self.collapsed:
+            return 'DirichletMultinomial(K={self.K}, N={self.N} | alpha={self.prior.alpha})'.format(self=self)
+        else:
+            return 'Multinomial(K={self.K}, N={self.N}) ~ {self.prior}'.format(self=self)
 
 
 class Dirichlet(object):
@@ -85,6 +93,10 @@ class MultinomialProduct(object):
     
     def marginal_prob(self, p, s):
         return self.theta_p.marginal_prob(p) * self.theta_s.marginal_prob(s)
+
+    def initialize(self):
+        self.theta_p.initialize()
+        self.theta_s.initialize()
 
     def resample(self):
         self.theta_p.resample()

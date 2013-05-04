@@ -1,4 +1,3 @@
-import logging
 import multiprocessing
 import random
 from collections import Counter
@@ -16,6 +15,7 @@ class CRPSlave(CRP, multiprocessing.Process):
         self.gid = gid
         self.iq = iq
         self.oq = oq
+        self.analyses = []
         self.p_counts = Counter()
         self.s_counts = Counter()
 
@@ -48,73 +48,77 @@ class CRPSlave(CRP, multiprocessing.Process):
             self.p_counts[p] -= 1
             self.s_counts[s] -= 1
 
-    def run(self):
-        analyses = []
-        words = self.iq.get()
+    def init_tokens(self, words):
+        # Initialize G
         for w in words:
             w, p, s = self.increment(w, initialize=True)
-            analyses.append((w, p, s))
+            self.analyses.append((w, p, s))
 
+    def send_counts(self):
+        # Send initialized counts to master
+        self.oq.put((self.p_counts, self.s_counts))
+
+    def update_base(self, base):
+        # Update H
+        self.base = base
+
+    def send_tables(self):
+        # Send tables to master
+        my_tables = [(dish, c) for dish in self.tables for c in self.tables[dish]]
+        self.oq.put(my_tables)
+
+    def receive_tables(self, new_tables):
+        self.analyses = []
+        self.ntables = len(new_tables)
+        self.total_customers = 0
+        self.tables = {}
+        self.ncustomers = {}
+        for dish, c in new_tables:
+            self.total_customers += c
+            for i in xrange(c):
+                self.analyses.append(dish)
+            if dish not in self.tables:
+                self.tables[dish] = []
+            self.tables[dish].append(c)
+            self.ncustomers[dish] = self.ncustomers.get(dish, 0) + c
+
+    def resample(self):
+        # 1. Resample table assignments
+        for i, (w, p, s) in enumerate(self.analyses):
+            self.decrement(w, p, s)
+            w, p, s = self.increment(w)
+            self.analyses[i] = (w, p, s)
+
+        # 2. Resample table dishes
+        new_analyses = []
+        new_tables = {}
+        new_ncustomers = {}
+        for (w, old_p, old_s), tables in self.tables.iteritems():
+            for c in tables:
+                self.p_counts[old_p] -= 1
+                self.s_counts[old_s] -= 1
+                
+                p, s = mult_sample(((p, s), self.base.prob(p, s))
+                        for p, s in self.seg_mappings[w])
+                self.p_counts[p] += 1
+                self.s_counts[s] += 1
+
+                if (w, p, s) not in new_tables:
+                    new_tables[w, p, s] = []
+                    new_ncustomers[w, p, s] = 0
+                new_tables[w, p, s].append(c)
+                new_ncustomers[w, p, s] += c
+                new_analyses.extend([(w, p, s)] * c)
+
+        self.analyses = new_analyses
+        self.tables = new_tables
+        self.ncustomers = new_ncustomers
+
+    def run(self):
         while True:
-            parcel = self.iq.get()
-            if parcel is None: # poison pill
-                return
-            elif parcel == 'send_tables':
-                my_tables = [(dish, c) for dish in self.tables for c in self.tables[dish]]
-                self.oq.put(my_tables)
-
-                new_tables = self.iq.get()
-
-                analyses = []
-                self.ntables = len(new_tables)
-                self.total_customers = 0
-                self.tables = {}
-                self.ncustomers = {}
-                for dish, c in new_tables:
-                    self.total_customers += c
-                    for i in xrange(c):
-                        analyses.append(dish)
-                    if dish not in self.tables:
-                        self.tables[dish] = []
-                    self.tables[dish].append(c)
-                    self.ncustomers[dish] = self.ncustomers.get(dish, 0) + c
-
-            else:
-                self.base = parcel
-
-                # resample table assignments
-                for i, (w, p, s) in enumerate(analyses):
-                    self.decrement(w, p, s)
-                    w, p, s = self.increment(w)
-                    analyses[i] = (w, p, s)
-
-                # resample table dishes
-                new_analyses = []
-                new_tables = {}
-                new_ncustomers = {}
-                for (w, old_p, old_s), tables in self.tables.iteritems():
-                    for c in tables:
-                        self.p_counts[old_p] -= 1
-                        self.s_counts[old_s] -= 1
-                        
-                        p, s = mult_sample(((p, s), self.base.prob(p, s)) for p, s in self.seg_mappings[w])
-                        self.p_counts[p] += 1
-                        self.s_counts[s] += 1
-
-                        if (w, p, s) not in new_tables:
-                            new_tables[w, p, s] = []
-                            new_ncustomers[w, p, s] = 0
-                        new_tables[w, p, s].append(c)
-                        new_ncustomers[w, p, s] += c
-                        new_analyses.extend([(w, p, s)] * c)
-
-                analyses = new_analyses
-                self.tables = new_tables
-                self.ncustomers = new_ncustomers
-
-                self.oq.put((self.p_counts, self.s_counts))
+            msg = self.iq.get()
+            if msg.name == 'shutdown': break
+            getattr(self, msg.name)(*msg.args)
 
     def __repr__(self):
-        return 'CRPSlave(alpha={self.alpha}, gid={self.gid})'.\
-            format(self=self)
-
+        return 'CRPSlave(alpha={self.alpha}, gid={self.gid})'.format(self=self)

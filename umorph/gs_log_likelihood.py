@@ -3,7 +3,7 @@ import logging
 from collections import Counter
 from vpyp.corpus import Vocabulary
 from umorph.segment import affixes
-from umorph.v3.distributions import MultinomialProduct
+from umorph.distributions import MultinomialProduct
 
 def main():
     logging.basicConfig(level=logging.INFO)

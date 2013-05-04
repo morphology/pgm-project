@@ -20,11 +20,12 @@ def show_top(model):
 
 
 def run_sampler(model, n_iter):
+    # Initialize H, G
+    model.initialize()
     for it in xrange(n_iter):
-
         processors = True if it % 10 == 0 else False
+        # Resample H, G
         model.resample(processors)
-
         if it % 10 == 0:
             logging.info('Iteration %d/%d', it+1, n_iter)
             show_top(model)

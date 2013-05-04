@@ -4,110 +4,16 @@ from collections import Counter
 from vpyp.pyp import CRP
 from vpyp.prob import mult_sample
 from umorph.segment import segmentations
-
-class Multinomial:
-    """Non-collapsed multinomial distribution sampled from a prior"""
-    def __init__(self, K, prior):
-        self.prior = prior
-        self.K = K
-        self.counts = [0] * K
-        self.N = 0
-
-    def increment(self, k):
-        assert (0 <= k < self.K)
-        self.counts[k] += 1
-        self.N += 1
-
-    def decrement(self, k):
-        assert (0 <= k < self.K)
-        self.counts[k] -= 1
-        self.N -= 1
-
-    def prob(self, k):
-        return self.theta[k]
-
-    def marginal_prob(self, k):
-        return ((self.counts[k] + self.prior.alpha)
-                / (self.N + self.K * self.prior.alpha))
-
-    def resample(self):
-        self.theta = self.prior.sample(self.counts)
-
-    def log_likelihood(self):
-        return (math.lgamma(self.N + 1)
-                + sum(c * math.log(self.theta[k]) - math.lgamma(c + 1)
-                    for k, c in enumerate(self.counts) if c > 0)
-                + self.prior.log_likelihood(self.theta))
-
-    def marginal_log_likelihood(self):
-        return (math.lgamma(self.K * self.prior.alpha)
-                - math.lgamma(self.K * self.prior.alpha + self.N)
-                + sum(math.lgamma(self.counts[k] + self.prior.alpha)
-                    for k in xrange(self.K))
-                - self.K * math.lgamma(self.prior.alpha))
-
-    def __repr__(self):
-        return 'Multinomial(K={self.K}, N={self.N}) ~ {self.prior}'.format(self=self)
-
-class Dirichlet:
-    """A Dirichlet distribution for sampling multinomials"""
-    def __init__(self, alpha):
-        self.alpha = alpha
-
-    def sample(self, counts):
-        params = [self.alpha + c for c in counts]
-        sample = [random.gammavariate(a, 1) for a in params]
-        norm = sum(sample)
-        return [v/norm for v in sample]
-
-    def log_likelihood(self, theta):
-        K = len(theta)
-        return (math.lgamma(K * self.alpha) - K * math.lgamma(self.alpha)
-                + sum((self.alpha - 1) * math.log(t) for t in theta))
-
-    def __repr__(self):
-        return 'Dirichlet(alpha={self.alpha})'.format(self=self)
-
-class MultProduct:
-    """H(p, s) = theta_p(p) * theta_s(s)"""
-    def __init__(self, n_prefixes, alpha_p, n_suffixes, alpha_s):
-        self.theta_p = Multinomial(n_prefixes, Dirichlet(alpha_p))
-        self.theta_s = Multinomial(n_suffixes, Dirichlet(alpha_s))
-
-    def increment(self, p, s):
-        self.theta_p.increment(p)
-        self.theta_s.increment(s)
-
-    def decrement(self, p, s):
-        self.theta_p.decrement(p)
-        self.theta_s.decrement(s)
-
-    def prob(self, p, s):
-        return self.theta_p.prob(p) * self.theta_s.prob(s)
-
-    def marginal_prob(self, p, s):
-        return self.theta_p.marginal_prob(p) * self.theta_s.marginal_prob(s)
-
-    def resample(self):
-        self.theta_p.resample()
-        self.theta_s.resample()
-
-    def log_likelihood(self):
-        # return self.theta_p.log_likelihood() + self.theta_s.log_likelihood()
-        return (self.theta_p.marginal_log_likelihood()
-                + self.theta_s.marginal_log_likelihood())
-
-    def __repr__(self):
-        return 'p ~ {self.theta_p}, s ~ {self.theta_s}'.format(self=self)
+from umorph.distributions import MultinomialProduct
 
 class SegmentationModel(CRP):
     """SegmentationModel ~ DP(alpha, H)"""
     def __init__(self, alpha, alpha_p, alpha_s, word_vocabulary,
-            prefix_vocabulary, suffix_vocabulary):
+            prefix_vocabulary, suffix_vocabulary, collapsed):
         super(SegmentationModel, self).__init__()
         self.alpha = alpha
-        self.base = MultProduct(len(prefix_vocabulary), alpha_p,
-                len(suffix_vocabulary), alpha_s)
+        self.base = MultinomialProduct(len(prefix_vocabulary), alpha_p,
+                len(suffix_vocabulary), alpha_s, collapsed)
         self.word_vocabulary = word_vocabulary
         self.prefix_vocabulary = prefix_vocabulary
         self.suffix_vocabulary = suffix_vocabulary
@@ -154,13 +60,7 @@ class SegmentationModel(CRP):
         for i, (p, s) in enumerate(self.analyses[w]):
             if n == i: break
         # randomly choose a table labeled with this dish
-        try:
-            seat = self._random_table((w, p, s))
-        except KeyError as e:
-            print w, self.analyses[w], e
-            for (v, p, s), table in self.tables.iteritems():
-                if v == w:
-                    print p, s, table, self.ncustomers[v, p, s]
+        seat = self._random_table((w, p, s))
         # remove customer
         if self._unseat_from((w, p, s), seat):
             self.base.decrement(p, s)
