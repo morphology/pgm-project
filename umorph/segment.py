@@ -1,13 +1,11 @@
-from itertools import chain
 from vpyp.corpus import Vocabulary
 
 def segmentations(word):
-    for k in range(1, len(word)):
+    for k in range(1, len(word)+1):
         yield word[:k], word[k:]
 
 def affixes(words):
-    segs = [segmentations(w) for w in words]
-    prefixes, suffixes = zip(*list(chain(*segs)))
+    prefixes, suffixes = zip(*[seg for w in words for seg in segmentations(w)])
     prefixes = Vocabulary(start_stop=False, init=set(prefixes))
     suffixes = Vocabulary(start_stop=False, init=set(suffixes))
     return prefixes, suffixes

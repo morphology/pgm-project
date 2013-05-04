@@ -4,9 +4,10 @@ import logging
 import multiprocessing as mp
 import segment
 import sys
-from model import ParallelSegmentationModel
+import time
 from itertools import izip
 from vpyp.corpus import Vocabulary
+from model import ParallelSegmentationModel
 
 
 def show_top(model):
@@ -43,10 +44,14 @@ def main():
                         help='DP prior stength')
     parser.add_argument('--processors', '-p', type=int, default=mp.cpu_count(),
                         help='Number of processors to use')
+    parser.add_argument('-mh', type=int, required=True,
+                        help='Number of MH steps per global iteration')
+    parser.add_argument('--collapse', action='store_true',
+                        help='Use approximate collapsed base')
     args = parser.parse_args()
 
     word_vocabulary = Vocabulary(start_stop=False)
-    corpus = [word_vocabulary[line.decode('utf8').strip()] for line in sys.stdin if len(line.decode('utf8').strip()) > 1]
+    corpus = [word_vocabulary[line.decode('utf8').strip()] for line in sys.stdin]
     prefix_vocabulary, suffix_vocabulary = segment.affixes(word_vocabulary)
 
     logging.info('%d tokens / %d types / %d prefixes / %d suffixes',
@@ -54,15 +59,18 @@ def main():
 
     logging.info('Starting %d processes', args.processors)
     model = ParallelSegmentationModel(args.strength, args.alpha_p, args.alpha_s, corpus, word_vocabulary,
-                                      prefix_vocabulary, suffix_vocabulary, args.processors)
+                                      prefix_vocabulary, suffix_vocabulary, args.processors, args.mh, args.collapse)
 
+    t_start = time.time()
     run_sampler(model, args.n_iter)
+    runtime = time.time() - t_start
+    logging.info('Sampler ran for %f seconds', runtime)
 
     model.shutdown()
 
     for word in word_vocabulary:
         p, s = model.decode(word)
-        print(u'{}\t_\t{}\t{}'.format(word, p, s).encode('utf8'))
+        print(u'{}\t{}\t{}'.format(word, p, s).encode('utf8'))
 
 
 if __name__ == '__main__':

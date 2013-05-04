@@ -45,7 +45,7 @@ def main():
     analysis = {}
     with open(args.analysis) as f:
         for line in f:
-            word, cl, stem, suffix = line.decode('utf8')[:-1].split('\t')
+            word, stem, suffix = line.decode('utf8')[:-1].split('\t')
             analysis[word] = (stem, suffix)
 
     types = set()

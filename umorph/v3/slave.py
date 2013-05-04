@@ -1,3 +1,4 @@
+import logging
 import multiprocessing
 import random
 from collections import Counter
@@ -6,12 +7,11 @@ from vpyp.prob import mult_sample
 
 
 class CRPSlave(CRP, multiprocessing.Process):
-    def __init__(self, alpha, base, seg_mappings, gid, iq, oq):
+    def __init__(self, alpha, seg_mappings, gid, iq, oq):
         CRP.__init__(self) # TODO fix hardcoded initialization
         multiprocessing.Process.__init__(self)
 
         self.alpha = alpha
-        self.base = base
         self.seg_mappings = seg_mappings
         self.gid = gid
         self.iq = iq
@@ -63,27 +63,24 @@ class CRPSlave(CRP, multiprocessing.Process):
                 my_tables = [(dish, c) for dish in self.tables for c in self.tables[dish]]
                 self.oq.put(my_tables)
 
-                accept = self.iq.get()
                 new_tables = self.iq.get()
 
-                if accept:
-                    analyses = []
-                    self.ntables = len(new_tables)
-                    self.total_customers = 0
-                    self.tables = {}
-                    self.ncustomers = {}
-                    for dish, c in new_tables:
-                        self.total_customers += c
-                        for i in xrange(c):
-                            analyses.append(dish)
-                        if dish not in self.tables:
-                            self.tables[dish] = []
-                        self.tables[dish].append(c)
-                        self.ncustomers[dish] = self.ncustomers.get(dish, 0) + c
+                analyses = []
+                self.ntables = len(new_tables)
+                self.total_customers = 0
+                self.tables = {}
+                self.ncustomers = {}
+                for dish, c in new_tables:
+                    self.total_customers += c
+                    for i in xrange(c):
+                        analyses.append(dish)
+                    if dish not in self.tables:
+                        self.tables[dish] = []
+                    self.tables[dish].append(c)
+                    self.ncustomers[dish] = self.ncustomers.get(dish, 0) + c
 
             else:
-                base = parcel
-                self.base = base
+                self.base = parcel
 
                 # resample table assignments
                 for i, (w, p, s) in enumerate(analyses):
