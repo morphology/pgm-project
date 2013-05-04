@@ -6,6 +6,34 @@ inflecting the word \textit{walk} to form its present participle form
 larger role, and may encode many inflectional categories such as
 tense, aspect, mood, number, gender, or case. The syntax and semantics
 of a sentence are highly dependent on this information, and it is
-therefore crucial that natural language processing 
+therefore crucial that natural language processing systems use
+morphological analyses.
 
-Many natural language processing systems 
+Despite the importance of morphology, many state of the art language
+technologies such as machine translation, speech recognition, and
+question answering do not properly ``parse'' lexical information. This
+is in part due to the amount of resources that are necessary to build
+proper morphological analyzers. Typical morphological analyzers use
+hand-built, finite-state rules to segment words and label each
+segmentation with its syntactic purpose. For example, the
+\textit{-ing} suffix typically marks the verb as a present participle,
+which together with the auxiliary verb \textit{to be} forms the
+continuous tense. Compiling such a collection of rules and efficiently
+implementing them as a software tool requires expertise in both
+linguistics and computer science. Furthermore, such tools must be
+rebuilt for each language, which, depending on the availability of
+existing corpora and linguistic resources, can be both costly and time
+consuming.
+
+There has recently been much interest in automating the process of
+morphological analysis using statistical machine learning
+algorithms. Automating such systems would address a number of
+challenges in natural language processing. First, being able to
+automatically compile rich linguistic information for resource-scarce
+languages would help to both preserve and better understand languages
+with relatively few speakers (compared to the billions that speak
+English, for example). Second, automatically creating such resources
+could potentially provide an ``free'' way to improve existing language
+technologies. For example, \cite{stallard2012} show that an Arabic
+machine translation system using an unsupervised morphological
+analyzer rivals a system using a supervised analyzer.
