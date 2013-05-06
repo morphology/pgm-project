@@ -28,7 +28,11 @@ from the Dirichlet process, which makes this powerful model usable in
 practice.
 
 In a mixture model, we are interested in recovering the cluster
-indicators $Z^n$. An alternative formulation of the cluster indicator
+indicators $Z^n$. An equivalent formulation of the cluster indicators
+$Z^n$ is to recover a partition of the data $X^n$. The Chinese
+Restaurant Process (CRP) is an algorithm for sampling partitions of a
+dataset from a DP in which the random measure that we sample from the
+DP has been integrated out.
 
 \begin{figure}[h]
 \centering
