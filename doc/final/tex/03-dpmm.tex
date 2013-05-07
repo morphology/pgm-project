@@ -1,9 +1,9 @@
 Classic mixture models make the assumption that the data are drawn
 from a finite collection of distributions. A data point is generated
 by first selecting one of the class distributions, and then drawing a
-sample from that distribution. In this model, the $X^n$ are observed
-and the cluster indicators $Z^n$, cluster mixture weights $\pi_{1:K}$
-and the parameters of the distributions $\theta_{1:K}$ are
+sample from that distribution. In this model, the data $X^n$ are
+observed and the cluster indicators $Z^n$, cluster mixture weights
+$\pi_{1:K}$ and the parameters of the distributions $\theta_{1:K}$ are
 hidden. Such models are useful for clustering, since we can infer the
 hidden cluster indicators $Z^n$ to recover a partition of the data
 that is likely according to the generative story sketched above.
@@ -27,12 +27,119 @@ distribution, there are several algorithms available that can sample
 from the Dirichlet process, which makes this powerful model usable in
 practice.
 
+The generative story for DP mixture model is the following. A single,
+finite dimensional, categorical distribution $G$ is drawn from the
+Dirichlet process $DP(\alpha, H)$. The DP is parameterized by the base
+distribution $H$ and the concentration parameter $\alpha$. The
+concentration parameter can be compared to the concentration parameter
+of a Dirichlet distribution. In the symmetric Dirichlet, $\alpha$
+controls how much draws from the distribution will vary from the
+$K$-dimensional uniform categorical distribution. For example, $\alpha
+= 0.1$ will result in sparse distributions because we are saying that
+draws from the Dirichlet should not be concentrated around the uniform
+distribution. On the other hand, when $\alpha = 10$, draws will
+frequently be close to uniform. Analogously, the concentration
+parameter of the DP will influence how similar $G$ is to $H$. If
+$\alpha$ is low, then $G$ will put the majority of its probability
+mass on several samples from $H$. If $\alpha$ is high, then $G$ will
+have a wider support, with probability distributed over the support in
+a way that is similar to $H$. Conditioned on the draw $G$, for each
+point $X_i$, we draw a set of parameters $\theta_i$ from $G$. Note
+that $G$ is a discrete distribution, and so we will frequently
+resample the same parameters. Given a set of parameters $\theta_i$,
+$X_i$ is sampled from the distribution $f(\theta_i)$. 
+
 In a mixture model, we are interested in recovering the cluster
 indicators $Z^n$. An equivalent formulation of the cluster indicators
 $Z^n$ is to recover a partition of the data $X^n$. The Chinese
 Restaurant Process (CRP) is an algorithm for sampling partitions of a
 dataset from a DP in which the random measure that we sample from the
-DP has been integrated out.
+DP has been integrated out. When used on its own, the CRP is
+essentially a sample from a categorical distribution; each data point
+is labeled with an index $i \in \{1, \ldots, K\}$. The key difference
+between sampling from a CRP and sampling $n$ points from a categorical
+distribution is that we do not know $K$ beforehand, and the model will
+allow $K$ to grow as more data is observed.
+
+Given a partition of the data $\Pi$ where each data point $X_i$ has
+been assigned a cluster indicator $Z_i$, we can easily extend the
+formulation to become a mixture model. By choosing some base
+distribution $H$, where the support of $H$ is the set of all valid
+parameters that index a family of distributions that we wish to use as
+our mixture components, we can draw a set of parameters from $H$ for
+each partition induced by the cluster indicators $Z^n$ by sampling
+the parameters $\theta_j$ for partition $j$ from
+
+\begin{align}
+  p(\theta_j | \Pi) \propto L(\theta_j | X^n_j) H(\theta_j)
+\end{align}
+
+This expression is the posterior distribution over the parameters
+using $H$ as a prior and the members of the cluster according to the
+partition as the data with which we create the likelihood.
+
+\subsection{Parallelizing the DPMM}
+
+While DP mixture models are flexible and allow modelers to sidestep
+the issue of model selection, they come at a significant computational
+price. The CRP, by itself, requires a full sweep through the full data
+for each iteration. Furthermore, in practice, resampling the table
+assignment for each data point requires updating several data
+structures that keep track of the ``tables'' and ``customers'' of the
+restaurant at each state. Depending on the size of the data and how
+these data structures are implemented, doing inference in a DP mixture
+model can be difficult to scale.
+
+There has been recent interest in the machine learning community in
+designing ways to speed up inference in models using the DP. We
+briefly review some of the more popular approaches in recent
+literature, which have been compiled and described in
+\cite{williamson2013}.
+
+Sequential Monte Carlo methods are approximate inference methods that
+use swarms of independent, weighted particles to approximate the
+posterior distribution of interest, and have been recently applied to
+DPs \cite{fearnhead2004, ulker2010, rodriguez2011, ahmed2011}. Since
+each particle is independent, such methods are ideal for
+parallelization. \cite{williamson2013} note, however, that such
+methods can lead to high variance in the approximation, which can be
+solved using a resampling step at the cost of introducing dependencies
+between particles.
+
+Another method for parallelizing inference in models using the DP is
+to use a variational approximation. Since variational approximations
+approximate the true posterior with a distribution $q$ that assumes
+many simplifying independence assumptions, such approximations can be
+easily spread across a cluster and updated in parallel. Such methods
+have been explored for both the DP and Hierarchical DP by
+\cite{blei2004, kurihara2007, teh2008, wang2011}.
+
+Finally, the MCMC procedures for doing inference in a DP can be
+approximated by splitting the computation for sampling table
+assignments for each data point across $P$ processors. When sampling a
+new assignment for a data point on cluster $P_j$ for $j \in \{1,
+\ldots, |P|\}$, we simply consider the assignments of all data points
+on processor $P_j$, and use the last known assignment of the data
+points on all other processors. Each processor's knowledge of other
+assignments is occasionally updated via a global synchronization
+step. This approach was explored by \cite{asuncion2008}, but
+\cite{williamson2013} note that this method can often be slow to
+converge in practice and that it is difficult to know when clusters on
+different processors should be split or merged.
+
+The method proposed by \cite{williamson2013} is an improvement over
+those presented above in that it builds on a principled extension of
+the DP mixture model. At a high level, the mixture model is described
+as a finite mixture over several local DPMMs, where each of the random
+measures over clusters shares a single Dirichlet process $DP(\alpha,
+H)$. This formulation introduces independencies between data points
+that are not generated from the same local DPMM, which allows the
+seating assignments to be resampled simultaneously in each DPMM. Since
+each DPMM can be resampled independently of the others, several CRPs
+can be run in parallel across several compute
+nodes. \cite{williamson2013} show that this model results in the exact
+same marginal distribution over the data $X^n$, and does not depend on
+any approximations.
 
 \begin{figure}[h]
 \centering
