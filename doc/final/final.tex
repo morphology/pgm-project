@@ -22,7 +22,37 @@ Peter Schulam\\
 \maketitle
 
 \begin{abstract}
-  We do some morphology.
+  Morphology studies the rules that govern the ways that the morphemes
+  of a language may be put together in meaningful ways. For example,
+  inflecting the word \textit{walk} to form its present participle
+  form \textit{walking} indicates that the action is ongoing in the
+  sentence \textit{I am walking}. In many languages, morphology can
+  play an even larger role, and may encode many inflectional
+  categories such as tense, aspect, mood, number, gender, or case. The
+  syntax and semantics of a sentence are highly dependent on this
+  information, and it is therefore crucial that natural language
+  processing systems use morphological analyses.  In this work, we
+  address the issue of efficiency in Bayesian nonparametric models of
+  morphology. Specifically, we formulate and implement a model that
+  extends the seminal work of \cite{goldwater2011}. Our new model is
+  inspired by a recent reparameterization of DP mixture models that
+  allows the Chinese Restaurant Process (CRP) to be split among
+  several compute nodes in order to speed up inference
+  \cite{williamson2013}. In Section \ref{sec:existing-models}, we
+  review the morphological model that we have extended and discuss
+  some of the linguistic assumptions encoded in the model. With a
+  thorough understanding of the baseline in place, we discuss the DP
+  mixture model in Section \ref{sec:dpmm} and review the recent work
+  on parallelizing inference. Additionally, we draw connections
+  between the baseline model in Section \ref{sec:existing-models} and
+  DP mixture models, which motivates the design of our parallelized
+  model. In Section \ref{sec:parallel-goldwater} we introduce our
+  primary contribution and discuss the decisions made when designing
+  and implementing our proposed model. Section \ref{sec:evaluation}
+  describes the datasets on which we evaluated our model, and presents
+  results demonstrating that our parallel model successfully recovers
+  the same analyses as the baseline and significantly improves the
+  speed of inference when compared against a baseline serial model.
 \end{abstract}
 
 \section{Introduction}

@@ -27,10 +27,10 @@ distribution, there are several algorithms available that can sample
 from the Dirichlet process, which makes this powerful model usable in
 practice.
 
-The generative story for DP mixture model is the following. A single,
-finite dimensional, categorical distribution $G$ is drawn from the
-Dirichlet process $DP(\alpha, H)$. The DP is parameterized by the base
-distribution $H$ and the concentration parameter $\alpha$. The
+The generative story for a DP mixture model is the following. A
+single, finite dimensional, categorical distribution $G$ is drawn from
+the Dirichlet process $DP(\alpha, H)$. The DP is parameterized by the
+base distribution $H$ and the concentration parameter $\alpha$. The
 concentration parameter can be compared to the concentration parameter
 of a Dirichlet distribution. In the symmetric Dirichlet, $\alpha$
 controls how much draws from the distribution will vary from the
@@ -47,36 +47,80 @@ a way that is similar to $H$. Conditioned on the draw $G$, for each
 point $X_i$, we draw a set of parameters $\theta_i$ from $G$. Note
 that $G$ is a discrete distribution, and so we will frequently
 resample the same parameters. Given a set of parameters $\theta_i$,
-$X_i$ is sampled from the distribution $f(\theta_i)$. 
-
-In a mixture model, we are interested in recovering the cluster
-indicators $Z^n$. An equivalent formulation of the cluster indicators
-$Z^n$ is to recover a partition of the data $X^n$. The Chinese
-Restaurant Process (CRP) is an algorithm for sampling partitions of a
-dataset from a DP in which the random measure that we sample from the
-DP has been integrated out. When used on its own, the CRP is
-essentially a sample from a categorical distribution; each data point
-is labeled with an index $i \in \{1, \ldots, K\}$. The key difference
-between sampling from a CRP and sampling $n$ points from a categorical
-distribution is that we do not know $K$ beforehand, and the model will
-allow $K$ to grow as more data is observed.
-
-Given a partition of the data $\Pi$ where each data point $X_i$ has
-been assigned a cluster indicator $Z_i$, we can easily extend the
-formulation to become a mixture model. By choosing some base
-distribution $H$, where the support of $H$ is the set of all valid
-parameters that index a family of distributions that we wish to use as
-our mixture components, we can draw a set of parameters from $H$ for
-each partition induced by the cluster indicators $Z^n$ by sampling
-the parameters $\theta_j$ for partition $j$ from
+$X_i$ is sampled from the distribution $f(\theta_i)$. In math, this
+can be expressed as
 
 \begin{align}
-  p(\theta_j | \Pi) \propto L(\theta_j | X^n_j) H(\theta_j)
+  G &\sim DP(\alpha, H) \\ \theta_i|G &\sim G \\ X_i|\theta_i &\sim f(\theta_i)
 \end{align}
 
-This expression is the posterior distribution over the parameters
-using $H$ as a prior and the members of the cluster according to the
-partition as the data with which we create the likelihood.
+In the DP mixture model, we are interested in inferring the cluster
+indicators $Z^n$ (equivalently the partition of the data $\Pi$) and
+the parameters $\theta_{1:|\Pi|}$ associated with each cluster. We are
+rarely interested in the random measure $G$, which is often
+marginalized out. When marginalized out, we can use the Chinese
+Restaurant Process to do inference over the cluster indicators $Z^n$
+and the parameters $\theta_{1:|\Pi|}$.
+
+\subsection{The Goldwater model as a DPMM}
+
+A key insight that allowed us to parallelize the Goldwater model was
+that the model can be reformulated as a DP mixture model. Recall that
+the key components of a DPMM are the base distribution $H$ over
+parameters, and a family of distributions $\mathcal{F}$ indexed by the
+parameters in the support of $H$.
+
+The Goldwater model uses a DP to dampen the counts observed in a
+corpus. Type frequencies in a corpus of natural text are often highly
+skewed---i.e. some types occur very frequently while the majority
+occur infrequently. This phenomona also occurs among the different
+inflections of the same \textit{lexeme}. For example, the
+first-person, present tense inflection \textit{walk} may occur much
+more frequently than \textit{walked} in a particular corpus. In
+languages with many different inflections for a particular
+\textit{lexeme} this can be especially problematic. Since it is
+important to learn all grammatically valid inflections of a word, the
+DP normalizes token frequencies so that inflections that are used more
+often are do not skew model estimation.
+
+With this in mind, the DP is used as an \textit{adaptor}
+\cite{goldwater2011}, and not as a distribution over measures over
+parameters. If we notice, however, that the base distribution $H(w)$
+in the goldwater model is defined to be
+
+\begin{align*}
+  H(w) &= \sum_{(p,s) \in segs(w)} p(p | \theta_p) p(s | \theta_s)
+\end{align*}
+
+which we can view as the marginal distribution of $w$ in a mixture
+model where $(p,s)$ are parameters indexing a point distribution over
+words where the probability of $w = p + s$ is $1$ and all other words
+have probability $0$. With this in mind, we can then redefine the
+generative story of the Goldwater model as follows
+
+\begin{align*}
+  \theta_p & \sim \text{Dir}(\alpha_p) \\
+  \theta_s & \sim \text{Dir}(\alpha_s) \\
+  H(p, s) & = p(p \mid \theta_p) p(s \mid \theta_s) \\
+  G & \sim \text{DP}\left(\alpha, H\right)\\
+  \forall i \in \{1 \dots N\} \\
+  (p_i, s_i) & \sim G \\
+  w_i & = p_i+s_i
+\end{align*}
+
+Graphically, this reformulated model can be seen in Figure
+\ref{fig:v2}. Viewing the Goldwater model in this way allows us to
+draw upon recent efforts in the machine learning literature to
+parallelize inference in DP mixture models. We discuss a particular
+technique introduced by \cite{williamson2013} in the following section
+before describing our parallel model of morphology.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.6\textwidth]{fig/v2}
+\caption{Goldwater model recast as DPMM}
+\label{fig:v2}
+\end{figure}
 
 \subsection{Parallelizing the DPMM}
 
@@ -141,19 +185,3 @@ nodes. \cite{williamson2013} show that this model results in the exact
 same marginal distribution over the data $X^n$, and does not depend on
 any approximations.
 
-\begin{figure}[h]
-\centering
-\includegraphics[width=0.9\textwidth]{fig/v2}
-\caption{Reparametrized model}
-\label{fig:v1}
-\end{figure}
-
-\begin{align*}
-\theta_p & \sim \text{Dir}(\alpha_p) \\
-\theta_s & \sim \text{Dir}(\alpha_s) \\
-H(p, s) & = p(p \mid \theta_p) p(s \mid \theta_s) \\
-G & \sim \text{DP}\left(\alpha, H\right)\\
-\forall i \in \{1 \dots N\} \\
-(p_i, s_i) & \sim G \\
-w_i & = p_i+s_i
-\end{align*}

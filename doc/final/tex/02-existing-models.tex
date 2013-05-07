@@ -1,15 +1,15 @@
 \begin{figure}[h]
-\centering
-\includegraphics[width=0.4\textwidth]{fig/v1}
-\caption{Baseline model}
-\label{fig:v1}
+  \centering
+  \includegraphics[width=0.6\textwidth]{fig/v1}
+  \caption{Baseline model}
+  \label{fig:v1}
 \end{figure}
 
 \begin{align*}
-\theta_p & \sim \text{Dir}(\alpha_p) \\
-\theta_s & \sim \text{Dir}(\alpha_s) \\
-H(w) & = \sum_{p+s=w} p(p \mid \theta_p) p(s \mid \theta_s) \\
-G & \sim \text{DP}(\alpha, H) \\
-\forall i \in \{1 \dots N\} \\
-w_i & \sim G
+  \theta_p & \sim \text{Dir}(\alpha_p) \\
+  \theta_s & \sim \text{Dir}(\alpha_s) \\
+  H(w) & = \sum_{p+s=w} p(p \mid \theta_p) p(s \mid \theta_s) \\
+  G & \sim \text{DP}(\alpha, H) \\
+  \forall i \in \{1 \dots N\} \\
+  w_i & \sim G
 \end{align*}
