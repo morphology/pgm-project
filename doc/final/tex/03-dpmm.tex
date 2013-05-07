@@ -183,5 +183,19 @@ each DPMM can be resampled independently of the others, several CRPs
 can be run in parallel across several compute
 nodes. \cite{williamson2013} show that this model results in the exact
 same marginal distribution over the data $X^n$, and does not depend on
-any approximations.
+any approximations. The generative story of this model is the
+following.
 
+\begin{align*}
+  \phi &\sim Dir(\frac{\alpha}{P}, \ldots, \frac{\alpha}{P}) \\
+  G_j &\sim DP(\frac{\alpha}{P}, H) \\
+  \pi_i \sim \phi,
+  \theta_i &\sim G_{\pi_i},
+  x_i \sim f(\theta_i)
+\end{align*}
+
+where $\phi$ is a categorical distribution over the $P$ processors,
+$\alpha$ is the concentration parameter that we would use in the
+unparallelized version of the model, $H$ is the base distribution, $j$
+ranges over the processor indicators (i.e. $j \in \{1, \ldots, P\}$),
+and $i$ ranges over the data indices (i.e. $i \in \{1, \ldots, n\}$).
