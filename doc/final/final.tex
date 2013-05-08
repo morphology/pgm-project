@@ -37,22 +37,14 @@ Phani Gadde\\
   extends the seminal work of \cite{goldwater2011}. Our new model is
   inspired by a recent reparameterization of DP mixture models that
   allows the Chinese Restaurant Process (CRP) to be split among
-  several compute nodes in order to speed up inference
-  \cite{williamson2013}. In Section \ref{sec:existing-models}, we
-  review the morphological model that we have extended and discuss
-  some of the linguistic assumptions encoded in the model. With a
-  thorough understanding of the baseline in place, we discuss the DP
-  mixture model in Section \ref{sec:dpmm} and review the recent work
-  on parallelizing inference. Additionally, we draw connections
-  between the baseline model in Section \ref{sec:existing-models} and
-  DP mixture models, which motivates the design of our parallelized
-  model. In Section \ref{sec:parallel-goldwater} we introduce our
-  primary contribution and discuss the decisions made when designing
-  and implementing our proposed model. Section \ref{sec:evaluation}
-  describes the datasets on which we evaluated our model, and presents
-  results demonstrating that our parallel model successfully recovers
-  the same analyses as the baseline and significantly improves the
-  speed of inference when compared against a baseline serial model.
+  several processors in order to speed up inference
+  \cite{williamson2013}. We show how the Goldwater model can be
+  reformulated as a Dirichlet process mixture model, and present new
+  model of morphology for which inference can be parallelized. We show
+  that our new model is as accurate as the baseline on a corpus of
+  English verbs, and then use a large corpus of Russian adjectives to
+  demonstrate that inference in our model is faster than serial
+  inference in a model with a comparable number of variables.
 \end{abstract}
 
 \section{Introduction}
