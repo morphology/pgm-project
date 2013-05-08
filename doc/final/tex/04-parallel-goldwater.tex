@@ -141,14 +141,14 @@ the CRP, the master node receives a message from each slave containing
 the number of times each prefix and each suffix occurs on a table in
 the slave's local CRP. These counts are recorded in the base
 distribution $H$, and a new $\theta_p$ and $\theta_s$ are drawn from
-the following distributions where $#p_i, #s_j$ is the number of times
+the following distributions where $\#p_i, \#s_j$ is the number of times
 the $i$th prefix and $j$th suffix respectively occurs on any table in
 any of the local restaurants, and where $|p|, |s|$ are the total
 number of prefixes and suffixes in the model.
 
 \begin{align}
-  \theta_p^{t+1} & \sim p(\theta_p | \text{table counts}, \alpha_p) = Dir(#p_1 + \alpha, \ldots, #p_{|p|} + \alpha) \\
-  \theta_s^{t+1} & \sim p(\theta_s | \text{table counts}, \alpha_s) = Dir(#s_1 + \alpha, \ldots, #p_{|s|} + \alpha)
+  \theta_p^{t+1} & \sim p(\theta_p | \text{table counts}, \alpha_p) = Dir(\#p_1 + \alpha, \ldots, \#p_{|p|} + \alpha) \\
+  \theta_s^{t+1} & \sim p(\theta_s | \text{table counts}, \alpha_s) = Dir(\#s_1 + \alpha, \ldots, \#p_{|s|} + \alpha)
 \end{align}
 
 After a new $\theta_p^{t+1}, \theta_s^{t+1}$ pair has been sampled,
