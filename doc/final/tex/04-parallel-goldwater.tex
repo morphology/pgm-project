@@ -1,9 +1,62 @@
-\begin{figure}[h]
-  \centering
-  \includegraphics[width=0.6\textwidth]{fig/v3}
-  \caption{Parallelized model}
-  \label{fig:v3}
-\end{figure}
+We now discuss our primary contribution; a parallelized version of the
+model described in \cite{goldwater2011}. Such a model is attractive
+because it has the potential to allow unsupervised morphological
+induction procedures to scale large datasets. In Section
+\ref{sec:evaluation}, we will show that our new model is just as
+accurate as the baseline model. This confirms that the auxiliary
+variables used to introduce the independencies exploited for
+parallelization do not affect the model's correctness. We believe this
+result is non-trivial because the parallel DPMM described by
+\cite{williamson2013} is designed with Gaussian mixture models in mind
+where the base distribution $H$ is of little interest. In our model,
+however, the base distribution encodes the knowledge that we are most
+interested in discovering within a language (the distribution over
+prefixes and suffixes). We also show that our parallelized model is
+able to compute a full iteration of the Gibbs sampler much more
+quickly than a comparable serialized model.
+
+The variables used in our parallelized model are a superset of those
+used in the baseline model. We review them below
+
+\begin{itemize}
+
+\item $\alpha$ together with the fixed number of compute nodes (or
+  processors) $P$ parameterize two distributions in our model. First,
+  $\alpha/P$ parameterizes the symmetric Dirichlet prior over the
+  processor multinomial $\phi$. Second, $\alpha/P$ also acts as the
+  concentration parameter of the DP over $G_{1:P}$.
+
+\item $\alpha_p$ and $\alpha_s$ are the concentration parameters of
+  the symmetric Dirichlet priors over $\theta_p$ and $\theta_s$
+  respectively.
+
+\item The base distribution $H$ is a distribution over prefix-suffix
+  tuples $(p, s)$ and is defined to be $H(p, s) = p(p | \theta_p) p(s
+  | \theta_s)$.
+
+\item The $P$ random measures $G_{1:P}$ are independent draws from the
+  Dirichlet process parameterized with concentration parameter
+  $\alpha/P$ and base distribution $H$.
+
+\item $\phi$ is a multinomial distribution over processors. This is
+  used to choose a processor assignment for a particular word in the
+  generative process.
+
+\item $\pi_i \in \{1, \ldots, P\}$ is the processor assignment for
+  each word $w_i$. Conditioned on this variable, the seating
+  assignments for words on processor $\pi$ can be resampled
+  independently.
+
+\item $(p_i, s_i)$ are the set of parameters sampled from the random
+  measure $G_{\pi_i}$. These are concatenated to form a ``draw'' from
+  the distribution $f(p_i, s_i)$, which is determinstically the word
+  formed by the concatenation of $p_i$ and $s_i$ (i.e. $w_i = p_i +
+  s_i$).
+
+\end{itemize}
+
+The generative story for this model can be seen below, and a
+visualization can be seen in Figure \ref{fig:v3}.
 
 \begin{align*}
   \theta_p & \sim \text{Dir}(\alpha_p) \\
@@ -18,4 +71,68 @@
   w_i & = p_i+s_i
 \end{align*}
 
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.6\textwidth]{fig/v3}
+  \caption{Parallelized model}
+  \label{fig:v3}
+\end{figure}
+
+It is important to note a key difference between the model presented
+in \cite{williamson2013} and the model presented here. The
+parallelized DPMM can take advantage of the fact that the base
+distribution is relatively simple in order to simplify the amount of
+global synchronization that must be done. Specifically,
+\cite{williamson2013} test their parallelized algorithm on synthetic
+data generated from a mixture of univariate one dimensional Gaussians
+with means sampled from a uniform distribution $Unif(0, 10)$ and a
+fixed variance (set to $0.1$). Inference in this model moves between
+local resampling in each of the $P$ CRPs and global resampling of the
+processor indicators $\pi_{1:n}$. Since the variables of interest are
+the cluster indicators $Z^n$ and the means of each cluster, there is
+no need for the local CRPs to communicate any information to the
+master node.
+
+In our model, however, the variables of interest are $\theta_p$ and
+$\theta_s$; the distributions over prefixes and suffixes that allow us
+to decode any given token once the model has been learned. We believe
+that this is an important difference, as it required a significant
+amount of additional effort in the implementation to coordinate
+intricate global synchronization among local CRPs and the master node
+(the processor that keeps track of the base and directs the local
+CRPs---this is discussed further in the section on inference). We
+discuss our implementation further in the following section.
+
 \subsection{Inference in the Parallel Model}
+
+Given a particular value of the parameter $P$, we involve $P + 1$
+processors or compute nodes in the computation. One node, which we call
+the \textit{master}, coordinates inference among the other nodes,
+which we call the \textit{slaves}. Communication is bidirectional, but
+proceeds in a query-respond fashion, where the master node asks the
+slaves to compute certain values or take certain inferential steps,
+and slaves respond with values required by the master node to take
+global inference steps.
+
+At a high level, parallelized inference in our model proceeds in two
+stages that alternate until convergence. The local stage is composed
+of $P$ parallel Chinese restaurant processes being run on the $P$
+slave nodes. During initialization, word $w_i$ is randomly assigned to
+a processor with probability $1/P$ (assignments are resampled---we
+describe the procedure later). The Dirichlet process from which we are
+implicitly sampling is $DP(\alpha/P, H)$, where the random measure
+$G_j$ for processor $j$ has been marginalized out. In terms of the
+restaurant metaphor, the customers are all words $w_i : {\pi_i =
+  j}$. Procedures for the CRP are well-known, and we do not describe
+them in detail here. It is, however, important to note that an
+implementation must keep explicit track of each table, its dish, and
+the number of customers at the table (or each slave node must be able
+to compute this from the information it does store). The information
+about each table is necessary for the global inference steps and will
+be communicated to the master node. This is one of the key differences
+between what is necessary for our model and what is necessary for the
+Gaussian DPMM discussed in \cite{williamson2013}.
+
+Globally, after each of the slaves has completed a single iteration of
+the CRP, the master node receives a message from each slave containing
+a list of

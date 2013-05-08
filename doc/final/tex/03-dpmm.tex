@@ -1,12 +1,12 @@
 Classic mixture models make the assumption that the data are drawn
 from a finite collection of distributions. A data point is generated
-by first selecting one of the class distributions, and then drawing a
-sample from that distribution. In this model, the data $X^n$ are
-observed and the cluster indicators $Z^n$, cluster mixture weights
-$\pi_{1:K}$ and the parameters of the distributions $\theta_{1:K}$ are
-hidden. Such models are useful for clustering, since we can infer the
-hidden cluster indicators $Z^n$ to recover a partition of the data
-that is likely according to the generative story sketched above.
+by first selecting one of the distributions, and then drawing a
+sample. In this model, the data $X^n$ are observed and the cluster
+indicators $Z^n$, cluster mixture weights $\pi_{1:K}$ and the
+parameters of the distributions $\theta_{1:K}$ are hidden. Such models
+are useful for clustering, since we can infer the hidden cluster
+indicators $Z^n$ to recover a partition of the data that is likely
+according to the generative story sketched above.
 
 While mixture models are useful and can act as fundamental components
 of more sophisticated hierarchical models, it is often difficult in
@@ -74,14 +74,14 @@ The Goldwater model uses a DP to dampen the counts observed in a
 corpus. Type frequencies in a corpus of natural text are often highly
 skewed---i.e. some types occur very frequently while the majority
 occur infrequently. This phenomona also occurs among the different
-inflections of the same \textit{lexeme}. For example, the
-first-person, present tense inflection \textit{walk} may occur much
-more frequently than \textit{walked} in a particular corpus. In
-languages with many different inflections for a particular
-\textit{lexeme} this can be especially problematic. Since it is
-important to learn all grammatically valid inflections of a word, the
-DP normalizes token frequencies so that inflections that are used more
-often are do not skew model estimation.
+inflections of the same lexeme. For example, the first-person, present
+tense inflection \textit{walk} may occur much more frequently than
+\textit{walked} in a particular corpus. In languages with many
+different inflections for a particular \textit{lexeme} this can be
+especially problematic. Since it is important to learn all
+grammatically valid inflections of a word, the DP normalizes token
+frequencies so that inflections that are used more often are do not
+bias model estimation.
 
 With this in mind, the DP is used as an \textit{adaptor}
 \cite{goldwater2011}, and not as a distribution over measures over
