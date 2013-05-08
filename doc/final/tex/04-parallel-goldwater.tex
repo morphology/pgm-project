@@ -1,9 +1,9 @@
 We now discuss our primary contribution; a parallelized version of the
 model described in \cite{goldwater2011}. Such a model is attractive
-because it has the potential to allow unsupervised morphological
-induction procedures to scale large datasets. In Section~\ref{sec:evaluation},
-we will show that our new model is just as
-accurate as the baseline model. This confirms that the auxiliary
+because it has the potential to allow unsupervised morphology
+induction procedures to scale to large corpora. In
+Section~\ref{sec:evaluation}, we will show that our new model is just
+as accurate as the baseline model. This confirms that the auxiliary
 variables used to introduce the independencies exploited for
 parallelization do not affect the model's correctness. We believe this
 result is non-trivial because the parallel DPMM described by
@@ -44,7 +44,7 @@ used in the baseline model. We review them below
 
 \item $\pi_i \in \{1, \ldots, P\}$ is the processor assignment for
   each word $w_i$. Conditioned on this variable, the seating
-  assignments for words on processor $\pi$ can be resampled
+  assignments for words on processor $j$ can be resampled
   independently.
 
 \item $(p_i, s_i)$ are the set of parameters sampled from the random
@@ -85,13 +85,16 @@ distribution is relatively simple in order to simplify the amount of
 global synchronization that must be done. Specifically,
 \cite{williamson2013} test their parallelized algorithm on synthetic
 data generated from a mixture of univariate one dimensional Gaussians
-with means sampled from a uniform distribution $Unif(0, 10)$ and a
-fixed variance (set to $0.1$). Inference in this model moves between
-local resampling in each of the $P$ CRPs and global resampling of the
-processor indicators $\pi_{1:n}$. Since the variables of interest are
-the cluster indicators $Z^n$ and the means of each cluster, there is
-no need for the local CRPs to communicate any information to the
-master node.
+with means sampled from a uniform distribution $\text{Unif}(0, 10)$
+and a fixed variance (set to $0.1$). Inference in this model moves
+between local resampling in each of the $P$ CRPs and global resampling
+of the processor indicators $\pi_{1:N}$. Since the variables of
+interest are the cluster indicators $Z^N$ and the means of each
+cluster, there is no need for the local CRPs to communicate any
+information to the master node. The cluster means can be updated given
+the data currently assigned to that cluster (which is a local update
+since clusters are never split across multiple processors), and
+seating arrangements are resampled via the local CRP.
 
 In our model, however, the variables of interest are $\theta_p$ and
 $\theta_s$; the distributions over prefixes and suffixes that allow us
@@ -100,55 +103,56 @@ that this is an important difference, as it required a significant
 amount of additional effort in the implementation to coordinate
 intricate global synchronization among local CRPs and the master node
 (the processor that keeps track of the base and directs the local
-CRPs---this is discussed further in the section on inference). We
-discuss our implementation further in the following section.
+CRPs---this is discussed further in the section on inference).
 
 \subsection{Inference in the Parallel Model}
 
 Given a particular value of the parameter $P$, we involve $P + 1$
-processors or compute nodes in the computation. One node, which we
-call the \textit{master}, coordinates inference among the other nodes,
-which we call the \textit{slaves}. Communication is bidirectional, but
-proceeds in a query-respond fashion, where the master node asks the
-slaves to compute certain values or take certain inferential steps,
-and slaves respond with values required by the master node to take
-global inference steps. Pseudo code for the algorithm can be found in
+processors or nodes in the computation. One node, which we call the
+\textit{master}, coordinates inference among the other nodes, which we
+call the \textit{slaves}. Communication is bidirectional, but proceeds
+in a query-respond fashion, where the master node asks the slaves to
+compute certain values or take certain inferential steps, and slaves
+respond with values required by the master node to take global
+inference steps. Pseudo code for the algorithm can be found in
 Figure~\ref{fig:inference}.
 
 At a high level, parallelized inference in our model proceeds in two
 stages that alternate until convergence. The local stage is composed
 of $P$ parallel Chinese restaurant processes being run on the $P$
 slave nodes. During initialization, word $w_i$ is randomly assigned to
-a processor with probability $1/P$ (assignments are resampled---we
-describe the procedure later). The Dirichlet process from which we are
-implicitly sampling is $DP(\alpha/P, H)$, where the random measure
-$G_j$ for processor $j$ has been marginalized out. In terms of the
-restaurant metaphor, the customers are all words $w_i : {\pi_i =
-  j}$. For each local iteration, a slave first resamples the seating
-arrangements of each customer, and then resamples the dishes assigned
-to each table given the current, fixed base distribution $H$. It is,
-however, important to note that an implementation must keep explicit
-track of each table, its dish, and the number of customers at the
-table (or each slave node must be able to compute this from the
-information it does store). The information about each table is
-necessary for the global inference steps and will be communicated to
-the master node. This is one of the key differences between what is
-necessary for our model and what is necessary for the Gaussian DPMM
-discussed in \cite{williamson2013}.
+a processor with probability $1/P$ (assignments are not static, and
+are resampled using a procedure that we describe later). The Dirichlet
+process from which we are sampling is $DP(\alpha/P, H)$, where the
+random measure $G_j$ for processor $j$ has been marginalized out. In
+terms of the restaurant metaphor, the customers in restaurant $j$ are
+all words $w_i : {\pi_i = j}$. For each local iteration, a slave first
+resamples the seating arrangements of each customer, and then
+resamples the dishes assigned to each table given the current, fixed
+base distribution $H$. It is important to note that an implementation
+must keep explicit track of each table, its dish, and the number of
+customers at the table (or each slave node must be able to compute
+this from the information it does store). The information about each
+table is necessary for the global inference steps and will be
+communicated to the master node. This is one of the key differences
+between what is necessary for our model and what is necessary for the
+Gaussian DPMM discussed in \cite{williamson2013}.
 
 Globally, after each of the slaves has completed a single iteration of
 the CRP, the master node receives a message from each slave containing
 the number of times each prefix and each suffix occurs on a table in
 the slave's local CRP. These counts are recorded in the base
 distribution $H$, and a new $\theta_p$ and $\theta_s$ are drawn from
-the following distributions where $\#p_i, \#s_j$ is the number of times
-the $i$th prefix and $j$th suffix respectively occurs on any table in
-any of the local restaurants, and where $|p|, |s|$ are the total
-number of prefixes and suffixes in the model.
+the following distributions where $\#p_i, \#s_j$ is the number of
+times the $i$th prefix and $j$th suffix respectively occurs on any
+table in any of the slave restaurants, and where $|p|, |s|$ are the
+total number of prefixes and suffixes in the model.
 
 \begin{align}
-  \theta_p^{t+1} & \sim p(\theta_p | \text{table counts}, \alpha_p) = \Dir(\#p_1 + \alpha, \ldots, \#p_{|p|} + \alpha) \\
-  \theta_s^{t+1} & \sim p(\theta_s | \text{table counts}, \alpha_s) = \Dir(\#s_1 + \alpha, \ldots, \#p_{|s|} + \alpha)
+  \theta_p^{t+1} & \sim p(\theta_p | \text{table counts}, \alpha_p)
+  = \Dir(\#p_1 + \alpha_p, \ldots, \#p_{|p|} + \alpha_p) \\
+  \theta_s^{t+1} & \sim p(\theta_s | \text{table counts}, \alpha_s)
+  = \Dir(\#s_1 + \alpha_s, \ldots, \#p_{|s|} + \alpha_s)
 \end{align}
 
 After a new $\theta_p^{t+1}, \theta_s^{t+1}$ pair has been sampled,
@@ -156,12 +160,12 @@ this defines a new base distribution $H^{t+1}$. This new base
 distribution is fixed, and passed back to the slaves to be used in the
 next iteration of inference when resampling dishes for each table.
 
-In our implementation most of the variables introduced for
+In our implementation, most of the variables introduced for
 parallelization are marginalized. The multinomial $\phi$ is
-marginalized out, and so are each of the random measures $G_j : j \in
-\{1, \ldots, P\}$. The processor indicators $\pi_i$, however, cannot
-be marginalized out, and so we must resample them to ensure that our
-model mixes correctly. Following \cite{williamson2013}, we resample
+marginalized, and so are each of the random measures $G_j : j \in \{1,
+\ldots, P\}$. The processor indicators $\pi_i$, however, cannot be
+marginalized, and so we must resample them to ensure that our model
+mixes correctly. Following \cite{williamson2013}, we resample
 processor indicators using a Metropolis Hastings step by resampling
 the processor indicators for entire tables. To coordinate this
 transition, the master node asks each slave node for a list of

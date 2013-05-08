@@ -11,7 +11,7 @@ Recently, more flexible approaches based on Bayesian inference have been propose
   \label{fig:v1}
 \end{figure}
 
-This baseline model (Fig.~\ref{fig:v1}) uses sparse Dirichlet priors to encourage decomposing words in the vocabulary into a prefix and a suffix, and generates a corpus by using a Dirichlet process over the words in the vocabulary. Formally, the generative story is the following ($p,s$ designate prefixes and suffixes and $H$ is a distribution over words in the vocabulary which serves as the base for drawing the final distribution $H$ over the $N$ tokens $w_i$ in the corpus):
+This baseline model (Fig.~\ref{fig:v1}) uses sparse Dirichlet priors to encourage decomposing words in the vocabulary into a prefix and a suffix, and generates a corpus by using a Dirichlet process over the words in the vocabulary. Formally, the generative story is the following ($p,s$ designate prefixes and suffixes and $H$ is a distribution over words in the vocabulary which serves as the base for drawing the final distribution $G$ over the $N$ tokens $w_i$ in the corpus):
 
 \begin{align*}
   \theta_p & \sim \Dir(\alpha_p) \\
@@ -22,7 +22,7 @@ This baseline model (Fig.~\ref{fig:v1}) uses sparse Dirichlet priors to encourag
   w_i & \sim G
 \end{align*}
 
-The Dirichlet process has the effect of dampening the frequencies of the tokens, making the base distribution relatively insensitive to the scale of the frequencies. The number of tables in the CRP grows sublinearly \cite{goldwater2011} with the frequency when $\alpha < 1$, operating a transformation similar to what is shown in Figure~\ref{fig:freq}. This is important because even if we desire to model token frequencies explicitely, the base distribution should consider each inflection equally as long as it is grammatical and the distribution of frequencies should follow the power-law distribution that is empirically observed for languages. In other words, the rules that define the morphology of the words in the vocabulary of a language are different from the usage rules that govern the production of tokens as observed in context. This model provides an elegant way to incorporate this constraint with very little language-specific assumptions.
+The Dirichlet process has the effect of dampening the frequencies of the tokens, making the base distribution relatively insensitive to the scale of the frequencies. The number of tables in the CRP grows sublinearly \cite{goldwater2011} with the frequency when $\alpha < 1$, operating a transformation similar to what is shown in Figure~\ref{fig:freq}. This is important because even if we desire to model token frequencies explicitely, the base distribution should consider each inflection equally as long as it is grammatical and the distribution of frequencies should follow the power-law distribution that is empirically observed for languages. In other words, the rules that define the morphology of the words in the vocabulary of a language are different from the usage rules that govern the production of tokens as observed in context. This model provides an elegant way to incorporate this constraint with very few language-specific assumptions.
 
 \begin{figure}[h]
   \centering
@@ -32,11 +32,11 @@ The Dirichlet process has the effect of dampening the frequencies of the tokens,
 \end{figure}
 
 \subsection{Implementation}
-Inference is done for this model using collapsed Gibbs sampling, whith the Chinese restaurant process (CRP) representation and two collapsed Dirichlet-multinomials for the base distribution.
+Inference is done for this model using collapsed Gibbs sampling, with the Chinese restaurant process (CRP) representation and two collapsed Dirichlet-multinomials for the base distribution.
 
-Our implementation alternatively considers assignments of tokens to tables in the CRP and segmentations of words in the base distributions into a prefix, suffix pair. These two types of latent variables are resampled iteratively until convergence indicated by the marginal likelihood of the model.
+Our implementation alternatively considers assignments of tokens to tables in the CRP and segmentations of words in the base distributions into a prefix-suffix pair. These two types of latent variables are resampled iteratively until convergence indicated by the marginal likelihood of the model.
 
-Finally, we proceed to decode each word in the corpus into its prefix, suffix pair by finding the most likely segmentation for each type according to the base distribution: $\max_{s,p} p(p \mid \theta_p) p(s \mid \theta_s)$.
+Finally, we proceed to decode each word in the corpus into its prefix-suffix pair by finding the most likely segmentation for each type according to the base distribution: $\max_{s,p} p(p \mid \theta_p) p(s \mid \theta_s)$.
 
 \subsection{Limitations}
 
