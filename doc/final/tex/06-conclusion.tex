@@ -1,5 +1,5 @@
-Future work (things we will never do but someone should really think about):
-- finding a practical way to do collapsed sampling of the base
-- actually using tokens to do something useful (see the litterature examples given before)
+We have proposed a reparametrization of a simple model for modeling morphology that allows its parallel implementation. We have shown empirically its efficiency in terms of speed per iteration, but we introduced a constraint in the model that makes the sampler converge in a larger number of iterations. However, we believe that there is a practical solution to this limiation: use a local collapsed Dirichlet-multinomial in each of the slaves and synchronize the count variations every few iterations to produce a global collapsed base distribution. Although this modification makes the inference inexact, we think this will barely affect the final accuracy of the model.
 
-We released our implementation of the three models as open-source software (\url{https://github.com/morphology/pgm-project}).
+We also reserve for future work the possibility to make this model of morphology more complex. For example, one could decompose words into a sequence of prefixes, a stem and a sequence of suffixes, which would only require modifying the base distribution. One could also model agreement by using a conditional distribution for generating the prefix, suffix pairs, making the tokens interdependent; this would require some modification in the parallelization scheme but the same independence principles would apply.
+
+We released our implementation of the three models as open-source software (\url{https://github.com/morphology/pgm-project}), offering the first publicly available implementation of such an unsupervised Bayesian model of morphology to our knowledge.
