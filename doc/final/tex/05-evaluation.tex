@@ -1,6 +1,4 @@
 \subsection{Datasets}
-Our first goal is to prove that the different parametrizations of the model perform equally well. To do so, we attempt to replicate previous work by using the dataset from \cite{goldwater2011}. This dataset is composed of all the verbs from the Penn treebank corpus, which are decomposed into a prefix, suffix pair using a small set of rules. English verbs have only a few possible endings ($\emptyset$, -e, -ed, ing, -s, -en \dots) but there is no clear gold segmentation for irregular verbs (should the form \textit{said} be analyzed as \textit{sai+d} or \textit{said}+$\emptyset$ ?). To obtain more empirical evidence of the validity of our approach, we also consider a larger dataset that we create by sampling Russian adjectives from a tagged corpus of news articles. In this case, the segmentation is fully unambiguous but the number of possible suffixes for each word is much larger: English verbs have only three forms (present, past, progressive) whereas Russian adjectives can be found in up to 24 different forms (3 genders + 2 numbers * 6 cases). The size of these two datasets are given in Table~\ref{tab:datasets}.
-
 \begin{table}[h]
     \center
     \begin{tabular}{r c c}
@@ -14,6 +12,8 @@ Our first goal is to prove that the different parametrizations of the model perf
     \caption{Corpus and vocabulary size of the two datasets used for evaluation}
     \label{tab:datasets}
 \end{table}
+
+Our first goal is to prove that the different parametrizations of the model perform equally well. To do so, we attempt to replicate previous work by using the dataset from \cite{goldwater2011}. This dataset is composed of all the verbs from the Penn treebank corpus, which are decomposed into a prefix, suffix pair using a small set of rules. English verbs have only a few possible endings ($\emptyset$, -e, -ed, ing, -s, -en \dots) but there is no clear gold segmentation for irregular verbs (should the form \textit{said} be analyzed as \textit{sai+d} or \textit{said}+$\emptyset$ ?). To obtain more empirical evidence of the validity of our approach, we also consider a larger dataset that we create by sampling Russian adjectives from a tagged corpus of news articles. In this case, the segmentation is fully unambiguous but the number of possible suffixes for each word is much larger: English verbs have only three forms (present, past, progressive) whereas Russian adjectives can be found in up to 24 different forms (3 genders + 2 numbers * 6 cases). The size of these two datasets are given in Table~\ref{tab:datasets}.
 
 \subsection{Experiments and discussion}
 
@@ -50,11 +50,6 @@ In terms of speed, the baseline and the serial models are comparable for a fixed
         \subcaption{Log-likelihood of the CRP}
         \label{fig:ll_crp}
     \end{subfigure}
-    \begin{subfigure}{0.48\textwidth}
-        \includegraphics[width=\textwidth]{fig/full_ll}
-        \subcaption{Full log-likelihood}
-        \label{fig:ll_full}
-    \end{subfigure}
     \caption{Log-likelihood of the three models (baseline: \S\ref{sec:existing-models}, serial: \S\ref{sec:dpmm}, parallel: \S\ref{sec:parallel-goldwater}) -- Russian dataset}
     \label{fig:ll}
 \end{figure}
@@ -62,4 +57,22 @@ In terms of speed, the baseline and the serial models are comparable for a fixed
 
 To further understand the differences between the three proposed samplers, we consider the evolution of the log-likelihood of the models over time (Figure~\ref{fig:ll}). The first thing to notice (\ref{fig:ll_base}) is that the serial model takes longer to converge than the baseline model. There is a simple explanation for this: the base distribution is not collapsed anymore, and although the CRP has an identical behavior (\ref{fig:ll_crp}), this affects the full model convergence. The second striking difference is between the serial and the parallel model likelihoods: while they are close, the parallel model suffers from some delay due to the random table assignment to processors. We observe after 500 iterations a successful Metropolis-Hastings redistribution step of the tables that produces a more efficient configuration for the sampler.
 
-However, looking at the likelihood of these models does not tell us how long it takes to reach a configuration which produces accurate analyses.
+\begin{figure}[h]
+    \center
+    \begin{subfigure}{0.48\textwidth}
+        \includegraphics[width=\textwidth]{fig/token_acc}
+        \subcaption{Token accuracy}
+        \label{fig:token_acc}
+    \end{subfigure}
+    \begin{subfigure}{0.48\textwidth}
+        \includegraphics[width=\textwidth]{fig/type_acc}
+        \subcaption{Type accuracy}
+        \label{fig:type_acc}
+    \end{subfigure}
+    \caption{Accuracies of the three models (baseline: \S\ref{sec:existing-models}, serial: \S\ref{sec:dpmm}, parallel: \S\ref{sec:parallel-goldwater}) -- Russian dataset}
+    \label{fig:acc}
+\end{figure}
+
+However, looking at the likelihood of these models does not tell us how long it takes to reach a configuration which produces accurate analyses. In Figure~\ref{fig:acc}, we plot the evolution of the accuracy as a function of the number of iterations, and obtain an expected result: not collapsing the base has a negative effect on the time taken to reach the peak accuracy. However, the role of the CRP is relatively minor and the difference of convergence behavior observed previously when comparing the serial and the parallel models seems to have no effect here.
+
+We can therefore summarize these experiments simply by concluding that although the parallel version is as exact as the serial version while being faster, both of these versions suffer from the theorical requirement that the base be uncollapsed.
