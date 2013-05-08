@@ -1,134 +1,65 @@
-TODO Explain that we mostly aim replicate previous work in terms of experiments (we don't expect accuracy improvements)
-
 \subsection{Datasets}
-
-It is interesting to see how non-parametric models perform on various types of
-inputs. Goldwater et. al show the model accuracy and convergeence on English
-words. While comparing our models' performace on English with Goldwater et. al,
-we also want to look at how the models generalize to languages with similar
-morphology. We run the baseline and our models on English verbs (EN-PTB) (the
-dataset used in \cite{goldwater2011}) and Russian adjectives (RU-ADJ). The
-EN-PTB words are extracted from the Penn Treebank and the RU-ADJ words are from
-the Russian national corpus.
-
-The following sections gives a brief overview of the morphology of Ebglish
-verbs and Russian adjectives and why they suit the models we are using in this
-work.  
-
-\subsubsection{English verbs}
-
-English verbs inflect is very straight forward. Words can be seen as a
-combination of a single prefix and a suffix, unlike more morephologically
-languages where many morphemes can join to form words. There are mainly three
-classes of suffixes that words can take apart from the empty suffix.
+Our first goal is to prove that the different parametrizations of the model perform equally well. To do so, we attempt to replicate previous work by using the dataset from \cite{goldwater2011}. This dataset is composed of all the verbs from the Penn treebank corpus, which are decomposed into a prefix, suffix pair using a small set of rules. English verbs have only a few possible endings ($\emptyset$, -e, -ed, ing, -s, -en \dots) but there is no clear gold segmentation for irregular verbs (should the form \textit{said} be analyzed as \textit{sai+d} or \textit{said}+$\emptyset$ ?). To obtain more empirical evidence of the validity of our approach, we also consider a larger dataset that we create by sampling Russian adjectives from a tagged corpus of news articles. In this case, the segmentation is fully unambiguous but the number of possible suffixes for each word is much larger: English verbs have only three forms (present, past, progressive) whereas Russian adjectives can be found in up to 24 different forms (3 genders + 2 numbers * 6 cases). The size of these two datasets are given in Table~\ref{tab:datasets}.
 
 \begin{table}[h]
-\centering
-\begin{tabular}{lll}
-\hline
-\multicolumn{3}{c}{\textbf{Regular Inflections}} \\
-\hline
-Morpheme & Description & Examples \\
-\hline
--s, -es & occurs wih 3rd person singular & walk-s, run-s, camp-s \\
--ed & past marker & work-ed, bark-ed, camp-ed \\
--n & past participle marker & chose-n, prove-n, woke-n \\
--ing & present participle marker & bark-ing, work-ing, camp-ing \\
-\hline
-\multicolumn{3}{c}{\textbf{Irregular Inflections}} \\
-\hline
-\textit{unclear} & past marker & ran, ate \\
-\textit{unclear} & past participle marker & drunk, hung \\
-\hline
-\end{tabular}
-\caption{\label{enInflections}Regular and irregular inflections for English verbs}
+    \center
+    \begin{tabular}{r c c}
+        \toprule
+        Dataset & Number of tokens & Number of types \\
+        \midrule
+  English verbs & 113k & 7k \\
+        Russian adjectives & 280k & 30k \\
+        \bottomrule
+    \end{tabular}
+    \caption{Corpus and vocabulary size of the two datasets used for evaluation}
+    \label{tab:datasets}
 \end{table}
 
-
-
-\subsubsection{Russian adjectives}
-
+\subsection{Experiments and discussion}
 
 \begin{table}[h]
-\centering
-\begin{tabular}{lcc}
-\hline
-Dataset & Types & Tokens \\
-\hline
-EN-PTB & 7K & 113K \\
-RU-ADJ & 9K & 18K \\
-\hline
-\end{tabular}
-\caption{Types and Tokens in the datasets}
-\label{datastats}
+    \center
+    \begin{tabular}{r c c c c}
+        \toprule
+        Model & \multicolumn{2}{c}{Token accuracy} & \multicolumn{2}{c}{Type accuracy} \\
+        \cmidrule(r){2-3} \cmidrule(r){4-5}
+        & EN & RU & EN & RU \\
+        \midrule
+        Baseline & 79.3 $\pm$ 3.2 & 99.4 & 77.1 $\pm$ 0.3 & 96.1 \\
+          Serial & 82.6 $\pm$ 1.8 & 99.4 & 77.6 $\pm$ 0.1 & 96.2 \\
+        Parallel & 84.1 $\pm$ 0.3 & 99.5 & 77.1 $\pm$ 0.2 & 96.1 \\
+        \bottomrule
+    \end{tabular}
+    \caption{Accuracy of the segmentations for the two datasets -- English accuracies are averaged over the last 1000 iterations}
+    \label{tab:accuracy}
 \end{table}
 
-Table~\ref{datastats} gives the types and tokens in the datasets.
+We run the three versions of the model on these two datasets to compare their performance. We set the parameters to $\alpha = 10^{-6}, \alpha_p = \alpha_s = 10^{-3}$ according to the discussion in \cite{goldwater2011} and let the Gibbs sampler run for 10,000 iterations. The parallel model is run with 4 processes. Unsurprisingly, we obtain very close accuracies for all models (Table~\ref{tab:accuracy}), with the exception of token accuracies in English which vary a lot because of the uncertainity of the irregular forms (the top 10 forms \textit{is/said/was/be/are/has/have/says/were/had} account for 30\% of the tokens and are irregular).
 
-\begin{figure}[ht]
-\begin{minipage}[b]{0.45\linewidth}
-\centering
-\includegraphics[width=\textwidth]{fig/en_TokenAccuracies}
-\end{minipage}
-\hspace{0.5cm}
-\begin{minipage}[b]{0.45\linewidth}
-\centering
-\includegraphics[width=\textwidth]{fig/en_TypeAccuracies}
-\end{minipage}
-\caption{\label{fig:enacc}Token and Type Accuracies for English verbs over 10K iterations}
-\end{figure}
+In terms of speed, the baseline and the serial models are comparable for a fixed number of iterations, and the parallel model is 30\% faster than the serial model with 4 processors. We expect the time difference to be even larger for corpora of larger size, as the time spent in the message passing steps is currently relatively high (20\% of the total time).
 
-\begin{figure}[ht]
-\begin{minipage}[b]{0.45\linewidth}
-\centering
-\includegraphics[width=\textwidth]{fig/ru_TokenAccuracies}
-\end{minipage}
-\hspace{0.5cm}
-\begin{minipage}[b]{0.45\linewidth}
-\centering
-\includegraphics[width=\textwidth]{fig/ru_TypeAccuracies}
-\end{minipage}
-\caption{\label{fig:ruacc}Token and Type Accuracies for Russian adjectives over 110K iterations}
+\begin{figure}[h]
+    \center
+    \begin{subfigure}{0.48\textwidth}
+        \includegraphics[width=\textwidth]{fig/base_ll}
+        \subcaption{Log-likelihood of the base distribution}
+        \label{fig:ll_base}
+    \end{subfigure}
+    \begin{subfigure}{0.48\textwidth}
+        \includegraphics[width=\textwidth]{fig/crp_ll}
+        \subcaption{Log-likelihood of the CRP}
+        \label{fig:ll_crp}
+    \end{subfigure}
+    \begin{subfigure}{0.48\textwidth}
+        \includegraphics[width=\textwidth]{fig/full_ll}
+        \subcaption{Full log-likelihood}
+        \label{fig:ll_full}
+    \end{subfigure}
+    \caption{Log-likelihood of the three models (baseline: \S\ref{sec:existing-models}, serial: \S\ref{sec:dpmm}, parallel: \S\ref{sec:parallel-goldwater}) -- Russian dataset}
+    \label{fig:ll}
 \end{figure}
 
 
-\begin{figure}[ht]
-\begin{minipage}[b]{0.45\linewidth}
-\centering
-\includegraphics[width=\textwidth]{fig/en_base_lls}
-\end{minipage}
-\hspace{0.5cm}
-\begin{minipage}[b]{0.45\linewidth}
-\centering
-\includegraphics[width=\textwidth]{fig/ru_base_lls}
-\end{minipage}
-\caption{\label{fig:basell} Base log-likelihood for all the three models}
-\end{figure}
+To further understand the differences between the three proposed samplers, we consider the evolution of the log-likelihood of the models over time (Figure~\ref{fig:ll}). The first thing to notice (\ref{fig:ll_base}) is that the serial model takes longer to converge than the baseline model. There is a simple explanation for this: the base distribution is not collapsed anymore, and although the CRP has an identical behavior (\ref{fig:ll_crp}), this affects the full model convergence. The second striking difference is between the serial and the parallel model likelihoods: while they are close, the parallel model suffers from some delay due to the random table assignment to processors. We observe after 500 iterations a successful Metropolis-Hastings redistribution step of the tables that produces a more efficient configuration for the sampler.
 
-\begin{figure}[ht]
-\begin{minipage}[b]{0.45\linewidth}
-\centering
-\includegraphics[width=\textwidth]{fig/ru_crp_lls}
-\end{minipage}
-\hspace{0.5cm}
-\begin{minipage}[b]{0.45\linewidth}
-\centering
-\includegraphics[width=\textwidth]{fig/en_crp_lls}
-\end{minipage}
-\caption{\label{fig:crpll} CRP log-likelihood for all the three models}
-\end{figure}
-
-
-\begin{figure}[ht]
-\begin{minipage}[b]{0.45\linewidth}
-\centering
-\includegraphics[width=\textwidth]{fig/en_lls}
-\end{minipage}
-\hspace{0.5cm}
-\begin{minipage}[b]{0.45\linewidth}
-\centering
-\includegraphics[width=\textwidth]{fig/ru_lls}
-\end{minipage}
-\caption{\label{fig:ll} Complete log-likelihood for all the three models}
-\end{figure}
-
+However, looking at the likelihood of these models does not tell us how long it takes to reach a configuration which produces accurate analyses.

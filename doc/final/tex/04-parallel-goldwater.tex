@@ -117,6 +117,13 @@ respond with values required by the master node to take global
 inference steps. Pseudo code for the algorithm can be found in
 Figure~\ref{fig:inference}.
 
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=1.05\textwidth]{fig/parallel_code_schema}
+  \caption{Pseudo code for inference in the parallel model}
+  \label{fig:inference}
+\end{figure}
+
 At a high level, parallelized inference in our model proceeds in two
 stages that alternate until convergence. The local stage is composed
 of $P$ parallel Chinese restaurant processes being run on the $P$
@@ -194,10 +201,3 @@ can be found in the supplementary material of
 a list of 2-tuples is sent back to each of the slaves (the slave's new
 tables with dishes and counts), and the slave can then rebuild its
 internal data structures to continue inference.
-
-\begin{figure}[h]
-  \centering
-  \includegraphics[width=1.05\textwidth]{fig/parallel_code_schema}
-  \caption{Pseudo code for inference in the parallel model}
-  \label{fig:inference}
-\end{figure}
