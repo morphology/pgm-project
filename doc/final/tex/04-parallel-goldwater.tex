@@ -106,13 +106,14 @@ discuss our implementation further in the following section.
 \subsection{Inference in the Parallel Model}
 
 Given a particular value of the parameter $P$, we involve $P + 1$
-processors or compute nodes in the computation. One node, which we call
-the \textit{master}, coordinates inference among the other nodes,
+processors or compute nodes in the computation. One node, which we
+call the \textit{master}, coordinates inference among the other nodes,
 which we call the \textit{slaves}. Communication is bidirectional, but
 proceeds in a query-respond fashion, where the master node asks the
 slaves to compute certain values or take certain inferential steps,
 and slaves respond with values required by the master node to take
-global inference steps.
+global inference steps. Pseudo code for the algorithm can be found in
+Figure \ref{fig:inference}.
 
 At a high level, parallelized inference in our model proceeds in two
 stages that alternate until convergence. The local stage is composed
@@ -123,16 +124,76 @@ describe the procedure later). The Dirichlet process from which we are
 implicitly sampling is $DP(\alpha/P, H)$, where the random measure
 $G_j$ for processor $j$ has been marginalized out. In terms of the
 restaurant metaphor, the customers are all words $w_i : {\pi_i =
-  j}$. Procedures for the CRP are well-known, and we do not describe
-them in detail here. It is, however, important to note that an
-implementation must keep explicit track of each table, its dish, and
-the number of customers at the table (or each slave node must be able
-to compute this from the information it does store). The information
-about each table is necessary for the global inference steps and will
-be communicated to the master node. This is one of the key differences
-between what is necessary for our model and what is necessary for the
-Gaussian DPMM discussed in \cite{williamson2013}.
+  j}$. For each local iteration, a slave first resamples the seating
+arrangements of each customer, and then resamples the dishes assigned
+to each table given the current, fixed base distribution $H$. It is,
+however, important to note that an implementation must keep explicit
+track of each table, its dish, and the number of customers at the
+table (or each slave node must be able to compute this from the
+information it does store). The information about each table is
+necessary for the global inference steps and will be communicated to
+the master node. This is one of the key differences between what is
+necessary for our model and what is necessary for the Gaussian DPMM
+discussed in \cite{williamson2013}.
 
 Globally, after each of the slaves has completed a single iteration of
 the CRP, the master node receives a message from each slave containing
-a list of
+the number of times each prefix and each suffix occurs on a table in
+the slave's local CRP. These counts are recorded in the base
+distribution $H$, and a new $\theta_p$ and $\theta_s$ are drawn from
+the following distributions where $#p_i, #s_j$ is the number of times
+the $i$th prefix and $j$th suffix respectively occurs on any table in
+any of the local restaurants, and where $|p|, |s|$ are the total
+number of prefixes and suffixes in the model.
+
+\begin{align}
+  \theta_p^{t+1} & \sim p(\theta_p | \text{table counts}, \alpha_p) = Dir(#p_1 + \alpha, \ldots, #p_{|p|} + \alpha) \\
+  \theta_s^{t+1} & \sim p(\theta_s | \text{table counts}, \alpha_s) = Dir(#s_1 + \alpha, \ldots, #p_{|s|} + \alpha)
+\end{align}
+
+After a new $\theta_p^{t+1}, \theta_s^{t+1}$ pair has been sampled,
+this defines a new base distribution $H^{t+1}$. This new base
+distribution is fixed, and passed back to the slaves to be used in the
+next iteration of inference when resampling dishes for each table.
+
+In our implementation most of the variables introduced for
+parallelization are marginalized. The multinomial $\phi$ is
+marginalized out, and so are each of the random measures $G_j : j \in
+\{1, \ldots, P\}$. The processor indicators $\pi_i$, however, cannot
+be marginalized out, and so we must resample them to ensure that our
+model mixes correctly. Following \cite{williamson2013}, we resample
+processor indicators using a Metropolis Hastings step by resampling
+the processor indicators for entire tables. To coordinate this
+transition, the master node asks each slave node for a list of
+2-tuples where each tuple corresponds to a single table in the slave's
+restaurant. The first element of the tuple is a prefix-suffix pair (a
+dish) and the second element is the number of customers sitting at
+that table. With this information collected from each slave, the
+master then resamples processor indicators \textit{for each table}
+(i.e. we resample a new $\pi$ simultaneously for each customer at the
+table) by drawing from a uniform distribution over the processors. We
+accept the transition with probability $\min(1, r)$ where r is defined
+as
+
+\begin{align}
+  r = \prod_{j = 1}^P \prod_{i=1}^{\max(N_j, N_j^*)} \frac{a_{ij}!}{a_{ij}^*!}
+\end{align}
+
+where $N_j$ is the number of words on processor $j$ in the old
+configuration, $N_j^*$ is the number of words on processor $j$ in the
+new configuration, and $a_{ij}, a_{ij}^*$ is the number of tables with
+$i$ customers on processor $j$ for the old and new configuration
+respectively. This quantity is simply the likelihood ratio of the new
+configuration to the old configuration. We omit its derivation, but it
+can be found in the supplementary material of
+\cite{williamson2013}. If new processor indicators have been assigned,
+a list of 2-tuples is sent back to each of the slaves (the slave's new
+tables with dishes and counts), and the slave can then rebuild its
+internal data structures to continue inference.
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=1.05\textwidth]{fig/parallel_code_schema}
+  \caption{Pseudo code for inference in the parallel model}
+  \label{fig:inference}
+\end{figure}
