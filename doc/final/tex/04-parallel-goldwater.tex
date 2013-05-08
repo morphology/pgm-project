@@ -1,8 +1,8 @@
 We now discuss our primary contribution; a parallelized version of the
 model described in \cite{goldwater2011}. Such a model is attractive
 because it has the potential to allow unsupervised morphological
-induction procedures to scale large datasets. In Section
-\ref{sec:evaluation}, we will show that our new model is just as
+induction procedures to scale large datasets. In Section~\ref{sec:evaluation},
+we will show that our new model is just as
 accurate as the baseline model. This confirms that the auxiliary
 variables used to introduce the independencies exploited for
 parallelization do not affect the model's correctness. We believe this
@@ -59,12 +59,12 @@ The generative story for this model can be seen below, and a
 visualization can be seen in Figure \ref{fig:v3}.
 
 \begin{align*}
-  \theta_p & \sim \text{Dir}(\alpha_p) \\
-  \theta_s & \sim \text{Dir}(\alpha_s) \\
+  \theta_p & \sim \Dir(\alpha_p) \\
+  \theta_s & \sim \Dir(\alpha_s) \\
   H(p, s) & = p(p \mid \theta_p) p(s \mid \theta_s) \\
-  \phi & \sim \text{Dir}\left(\frac{\alpha}{P}\right) \\
+  \phi & \sim \Dir\left(\frac{\alpha}{P}\right) \\
   \forall j \in \{1 \dots P\} \\
-  G_j & \sim \text{DP}\left(\frac{\alpha}{P}, H\right)\\
+  G_j & \sim \DP\left(\frac{\alpha}{P}, H\right)\\
   \forall i \in \{1 \dots N\} \\
   \pi_i & \sim \phi \\
   (p_i, s_i) & \sim G_{\pi_i} \\
@@ -113,7 +113,7 @@ proceeds in a query-respond fashion, where the master node asks the
 slaves to compute certain values or take certain inferential steps,
 and slaves respond with values required by the master node to take
 global inference steps. Pseudo code for the algorithm can be found in
-Figure \ref{fig:inference}.
+Figure~\ref{fig:inference}.
 
 At a high level, parallelized inference in our model proceeds in two
 stages that alternate until convergence. The local stage is composed
@@ -147,8 +147,8 @@ any of the local restaurants, and where $|p|, |s|$ are the total
 number of prefixes and suffixes in the model.
 
 \begin{align}
-  \theta_p^{t+1} & \sim p(\theta_p | \text{table counts}, \alpha_p) = Dir(\#p_1 + \alpha, \ldots, \#p_{|p|} + \alpha) \\
-  \theta_s^{t+1} & \sim p(\theta_s | \text{table counts}, \alpha_s) = Dir(\#s_1 + \alpha, \ldots, \#p_{|s|} + \alpha)
+  \theta_p^{t+1} & \sim p(\theta_p | \text{table counts}, \alpha_p) = \Dir(\#p_1 + \alpha, \ldots, \#p_{|p|} + \alpha) \\
+  \theta_s^{t+1} & \sim p(\theta_s | \text{table counts}, \alpha_s) = \Dir(\#s_1 + \alpha, \ldots, \#p_{|s|} + \alpha)
 \end{align}
 
 After a new $\theta_p^{t+1}, \theta_s^{t+1}$ pair has been sampled,
@@ -170,7 +170,7 @@ restaurant. The first element of the tuple is a prefix-suffix pair (a
 dish) and the second element is the number of customers sitting at
 that table. With this information collected from each slave, the
 master then resamples processor indicators \textit{for each table}
-(i.e. we resample a new $\pi$ simultaneously for each customer at the
+(i.e.~we resample a new $\pi$ simultaneously for each customer at the
 table) by drawing from a uniform distribution over the processors. We
 accept the transition with probability $\min(1, r)$ where r is defined
 as

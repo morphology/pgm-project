@@ -29,7 +29,7 @@ practice.
 
 The generative story for a DP mixture model is the following. A
 single, finite dimensional, categorical distribution $G$ is drawn from
-the Dirichlet process $DP(\alpha, H)$. The DP is parameterized by the
+the Dirichlet process $\DP(\alpha, H)$. The DP is parameterized by the
 base distribution $H$ and the concentration parameter $\alpha$. The
 concentration parameter can be compared to the concentration parameter
 of a Dirichlet distribution. In the symmetric Dirichlet, $\alpha$
@@ -51,7 +51,7 @@ $X_i$ is sampled from the distribution $f(\theta_i)$. In math, this
 can be expressed as
 
 \begin{align}
-  G &\sim DP(\alpha, H) \\ \theta_i|G &\sim G \\ X_i|\theta_i &\sim f(\theta_i)
+  G &\sim \DP(\alpha, H) \\ \theta_i|G &\sim G \\ X_i|\theta_i &\sim f(\theta_i)
 \end{align}
 
 In the DP mixture model, we are interested in inferring the cluster
@@ -99,10 +99,10 @@ have probability $0$. With this in mind, we can then redefine the
 generative story of the Goldwater model as follows
 
 \begin{align*}
-  \theta_p & \sim \text{Dir}(\alpha_p) \\
-  \theta_s & \sim \text{Dir}(\alpha_s) \\
+  \theta_p & \sim \Dir(\alpha_p) \\
+  \theta_s & \sim \Dir(\alpha_s) \\
   H(p, s) & = p(p \mid \theta_p) p(s \mid \theta_s) \\
-  G & \sim \text{DP}\left(\alpha, H\right)\\
+  G & \sim \DP\left(\alpha, H\right)\\
   \forall i \in \{1 \dots N\} \\
   (p_i, s_i) & \sim G \\
   w_i & = p_i+s_i
@@ -175,7 +175,7 @@ The method proposed by \cite{williamson2013} is an improvement over
 those presented above in that it builds on a principled extension of
 the DP mixture model. At a high level, the mixture model is described
 as a finite mixture over several local DPMMs, where each of the random
-measures over clusters shares a single Dirichlet process $DP(\alpha,
+measures over clusters shares a single Dirichlet process $\DP(\alpha,
 H)$. This formulation introduces independencies between data points
 that are not generated from the same local DPMM, which allows the
 seating assignments to be resampled simultaneously in each DPMM. Since
@@ -187,11 +187,11 @@ any approximations. The generative story of this model is the
 following.
 
 \begin{align*}
-  \phi &\sim Dir(\frac{\alpha}{P}, \ldots, \frac{\alpha}{P}) \\
-  G_j &\sim DP(\frac{\alpha}{P}, H) \\
-  \pi_i \sim \phi,
-  \theta_i &\sim G_{\pi_i},
-  x_i \sim f(\theta_i)
+    \phi &\sim \Dir\left(\frac{\alpha}{P}, \ldots, \frac{\alpha}{P}\right) \\
+     G_j &\sim \DP\left(\frac{\alpha}{P}, H\right) \\
+    \pi_i \sim \phi,
+    \theta_i &\sim G_{\pi_i},
+    x_i \sim f(\theta_i)
 \end{align*}
 
 where $\phi$ is a categorical distribution over the $P$ processors,
