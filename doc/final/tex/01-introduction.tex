@@ -1,18 +1,18 @@
 Morphology studies the rules that govern the ways that the morphemes
-of a language may be put together in meaningful ways. For example,
-inflecting the word \textit{walk} to form its present participle form
+of a language may be put together to form words. For example,
+inflecting the stem \textit{walk} to form its present participle form
 \textit{walking} indicates that the action is ongoing in the sentence
 \textit{I am walking}. In many languages, morphology can play an even
-larger role, and may encode many inflectional categories such as
+larger role, and may encode many grammatical categories such as
 tense, aspect, mood, number, gender, or case. The syntax and semantics
 of a sentence are highly dependent on this information, and it is
-therefore crucial that natural language processing systems use
-morphological analyses.
+therefore crucial to process it accurately for the efficiency
+of downstream natural language processing systems.
 
 Despite the importance of morphology, many state of the art language
 technologies such as machine translation, speech recognition, and
 question answering do not properly parse lexical information. This is
-in part due to the amount of resources that are necessary to build
+in part due to the amount of resources that is necessary to build
 proper morphological analyzers. Typical morphological analyzers use
 hand-built, finite-state rules to segment words and label each
 segmentation with its syntactic purpose. For example, the
@@ -74,7 +74,7 @@ this dimensionality reduction, but Bayesian nonparametric models would
 not scale well when processing the massive amounts of data indexed by
 modern information retrieval engines.
 
-In this work, we address the issue of efficiency in Bayesian
+In this work, we address the issue of scalability in Bayesian
 nonparametric models of morphology. Specifically, we formulate and
 implement a model that extends the seminal work of
 \cite{goldwater2011}. Our new model is inspired by a recent

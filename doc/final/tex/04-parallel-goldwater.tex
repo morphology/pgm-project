@@ -1,4 +1,4 @@
-We now discuss our primary contribution; a parallelized version of the
+We now discuss our primary contribution, a parallelized version of the
 model described in \cite{goldwater2011}. Such a model is attractive
 because it has the potential to allow unsupervised morphology
 induction procedures to scale to large corpora. In
@@ -55,7 +55,14 @@ used in the baseline model. We review them below
 
 \end{itemize}
 
-The generative story for this model can be seen below, and a
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.6\textwidth]{fig/v3}
+  \caption{Parallelized model}
+  \label{fig:v3}
+\end{figure}
+
+The generative story for this model is described below, and a
 visualization can be seen in Figure \ref{fig:v3}.
 
 \begin{align*}
@@ -71,13 +78,6 @@ visualization can be seen in Figure \ref{fig:v3}.
   w_i & = p_i+s_i
 \end{align*}
 
-\begin{figure}[h]
-  \centering
-  \includegraphics[width=0.6\textwidth]{fig/v3}
-  \caption{Parallelized model}
-  \label{fig:v3}
-\end{figure}
-
 It is important to note a key difference between the model presented
 in \cite{williamson2013} and the model presented here. The
 parallelized DPMM can take advantage of the fact that the base
@@ -89,7 +89,7 @@ with means sampled from a uniform distribution $\text{Unif}(0, 10)$
 and a fixed variance (set to $0.1$). Inference in this model moves
 between local resampling in each of the $P$ CRPs and global resampling
 of the processor indicators $\pi_{1:N}$. Since the variables of
-interest are the cluster indicators $Z^N$ and the means of each
+interest are the cluster indicators $z_{1:N}$ and the means of each
 cluster, there is no need for the local CRPs to communicate any
 information to the master node. The cluster means can be updated given
 the data currently assigned to that cluster (which is a local update
@@ -150,7 +150,7 @@ the CRP, the master node receives a message from each slave containing
 the number of times each prefix and each suffix occurs on a table in
 the slave's local CRP. These counts are recorded in the base
 distribution $H$, and a new $\theta_p$ and $\theta_s$ are drawn from
-the following distributions where $\#p_i, \#s_j$ is the number of
+the following posterior distributions where $\#p_i, \#s_j$ is the number of
 times the $i$th prefix and $j$th suffix respectively occurs on any
 table in any of the slave restaurants, and where $|p|, |s|$ are the
 total number of prefixes and suffixes in the model.

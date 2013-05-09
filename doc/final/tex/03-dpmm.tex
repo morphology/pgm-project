@@ -1,11 +1,11 @@
 Classic mixture models make the assumption that the data are drawn
 from a finite collection of distributions. A data point is generated
 by first selecting one of the distributions, and then drawing a
-sample. In this model, the data $X^N$ are observed and the cluster
-indicators $Z^N$, cluster mixture weights $\pi_{1:K}$ and the
+sample. In this model, the data $x_{1:N}$ are observed and the cluster
+indicators $z_{1:N}$, cluster mixture weights $\pi_{1:K}$ and the
 parameters of the distributions $\theta_{1:K}$ are hidden. Such models
 are useful for clustering, since we can infer the hidden cluster
-indicators $Z^N$ to recover a partition of the data.
+indicators $z_{1:N}$ to recover a partition of the data.
 
 While mixture models are useful and can act as fundamental components
 of more sophisticated hierarchical models, it is often difficult in
@@ -43,30 +43,30 @@ $H$. If $\alpha$ is low, then $G$ will put the majority of its
 probability mass on several samples from $H$. If $\alpha$ is high,
 then $G$ will have a wider support, with probability distributed over
 the support in a way that is similar to $H$. Conditioned on the draw
-$G$, for each point $X_i$, we draw a set of parameters $\theta_i$ from
+$G$, for each point $x_i$, we draw a set of parameters $\theta_i$ from
 $G$. Note that $G$ is a discrete distribution, and so we will
 frequently resample the same parameters. Given a set of parameters
-$\theta_i$, $X_i$ is sampled from the distribution
+$\theta_i$, $x_i$ is sampled from the distribution
 $f(\theta_i)$. Formally, this can be expressed as
 
 \begin{align}
   G &\sim \DP(\alpha, H) \\
   \forall i \in \{1 \ldots N\}& \\
-  \theta_i|G &\sim G \\
-  X_i|\theta_i &\sim f(\theta_i)
+  \theta_i &\sim G \\
+  x_i &\sim f(\theta_i)
 \end{align}
 
 In the DP mixture model, we are interested in inferring the cluster
-indicators $Z^N$ (equivalently the partition of the data $\Pi$) and
+indicators $z_{1:N}$ (equivalently the partition of the data $\Pi$) and
 the parameters $\theta_{1:|\Pi|}$ associated with each cluster. We are
 rarely interested in the random measure $G$, which is often
 marginalized out. When marginalized out, we can use the Chinese
-Restaurant Process to do inference over the cluster indicators $Z^N$
+Restaurant Process to do inference over the cluster indicators $z_{1:N}$
 and the parameters $\theta_{1:|\Pi|}$.
 
 \subsection{The Goldwater model as a DPMM}
 
-A key insight that allowed us to parallelize the Goldwater model was
+A key insight that allows us to parallelize the Goldwater model is
 that the model can be reformulated as a DP mixture model. Recall that
 the key components of a DPMM are the base distribution $H$ over
 parameters, and a family of distributions $\mathcal{F}$ indexed by the
@@ -86,10 +86,10 @@ frequently do not bias the model.
 In the Goldwater model, the DP is used as an \textit{adaptor}
 \cite{goldwater2011}, and not as a distribution over measures over
 parameters. Note, however, that the base distribution $H(w)$ in the
-goldwater model is defined to be
+Goldwater model is defined to be
 
 \begin{align*}
-  H(w) &= \sum_{(p,s) \in segs(w)} p(p | \theta_p) p(s | \theta_s)
+  H(w) &= \sum_{p + s = w} p(p | \theta_p) p(s | \theta_s)
 \end{align*}
 
 which we can view as the marginal distribution of $w$ in a mixture
@@ -125,7 +125,7 @@ before describing our parallel model of morphology.
 
 While DP mixture models are flexible and allow modelers to sidestep
 the issue of model selection, they come at a significant computational
-price. The CRP requires a full sweep through the full data for each
+price. The CRP requires a full sweep through the entire data for each
 iteration. Furthermore, in practice, resampling the table assignment
 for each data point requires updating several data structures that
 keep track of the ``tables'' and ``customers'' of the restaurant at
@@ -154,7 +154,7 @@ to use a variational approximation. Since variational methods
 approximate the true posterior with a distribution $q$ that assumes
 many simplifying independence assumptions, such approximations can be
 easily spread across a cluster and updated in parallel. Such methods
-have been explored for both the DP and Hierarchical DP by
+have been explored for both the DP and hierarchical DP by
 \cite{blei2004, kurihara2007, teh2008, wang2011}.
 
 Finally, the MCMC procedures for doing inference in a DP can be sped
@@ -181,16 +181,16 @@ allows the seating assignments to be resampled simultaneously in each
 DPMM. Since each DPMM can be resampled independently of the others,
 several CRPs can be run in parallel. \cite{williamson2013} show that
 this model results in the exact same marginal distribution over the
-data $X^N$. The generative story of this model is the following:
+data $x_{1:N}$. The generative story of this model is the following:
 
 \begin{align*}
     \phi &\sim \Dir\left(\frac{\alpha}{P}, \ldots, \frac{\alpha}{P}\right) \\
     \forall j \in \{1 \ldots P\} & \\
     G_j &\sim \DP\left(\frac{\alpha}{P}, H\right) \\
     \forall i \in \{1 \ldots N\} & \\
-    \pi_i \sim \phi,
-    \theta_i &\sim G_{\pi_i},
-    x_i \sim f(\theta_i)
+                           \pi_i & \sim \phi \\
+                        \theta_i & \sim G_{\pi_i} \\
+                             x_i & \sim f(\theta_i)
 \end{align*}
 
 where $\phi$ is a multinomial distribution over the $P$ processors,

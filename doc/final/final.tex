@@ -27,12 +27,12 @@ Phani Gadde\\
   inflecting the word \textit{walk} to form its present participle
   form \textit{walking} indicates that the action is ongoing in the
   sentence \textit{I am walking}. In many languages, morphology can
-  play an even larger role, and may encode many inflectional
+  play an even larger role, and may encode many grammatical
   categories such as tense, aspect, mood, number, gender, or case. The
   syntax and semantics of a sentence are highly dependent on this
   information, and it is therefore crucial that natural language
   processing systems use morphological analyses.  In this work, we
-  address the issue of efficiency in Bayesian nonparametric models of
+  address the issue of scalability in Bayesian nonparametric models of
   morphology. Specifically, we formulate and implement a model that
   extends the seminal work of \cite{goldwater2011}. Our new model is
   inspired by a recent reparameterization of DP mixture models that
@@ -40,7 +40,7 @@ Phani Gadde\\
   several processors in order to speed up inference
   \cite{williamson2013}. We show how the Goldwater model can be
   reformulated as a Dirichlet process mixture model, and present new
-  model of morphology for which inference can be parallelized. We show
+  model of morphology for which inference can be parallelized. We provide empirical evidence
   that our new model is as accurate as the baseline on a corpus of
   English verbs, and then use a large corpus of Russian adjectives to
   demonstrate that inference in our model is faster than serial
