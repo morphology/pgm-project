@@ -36,7 +36,7 @@ Our first goal is to prove that the different parametrizations of the model perf
 
 We run the three versions of the model on these two datasets to compare their performance. We set the parameters to $\alpha = 10^{-6}, \alpha_p = \alpha_s = 10^{-3}$ according to the discussion in \cite{goldwater2011} and let the Gibbs sampler run for 10,000 iterations. The parallel model is run with 4 processes. Unsurprisingly, we obtain very close accuracies for all models (Table~\ref{tab:accuracy}), with the exception of token accuracies in English which vary a lot because of the uncertainity of the irregular forms (the top 10 forms \textit{is/said/was/be/are/has/have/says/were/had} account for 30\% of the tokens and are irregular).
 
-In terms of speed, the baseline and the serial models are comparable for a fixed number of iterations, and the parallel model is 30\% faster than the serial model with 4 processors. We expect the time difference to be even larger for corpora of larger size, as the time spent in the message passing steps is currently relatively high (20\% of the total time).
+In terms of speed, the baseline and the serial models are comparable for a fixed number of iterations, and the parallel model is 30\% faster than the serial model with 4 processors. We expect the time difference to be even greater for larger corpora, as the time spent in the message passing steps is currently relatively high (20\% of the total time).
 
 \begin{figure}[h]
     \center
@@ -55,7 +55,7 @@ In terms of speed, the baseline and the serial models are comparable for a fixed
 \end{figure}
 
 
-To further understand the differences between the three proposed samplers, we consider the evolution of the log-likelihood of the models over time (Figure~\ref{fig:ll}). The first thing to notice (\ref{fig:ll_base}) is that the serial model takes longer to converge than the baseline model. There is a simple explanation for this: the base distribution is not collapsed anymore, and although the CRP has an identical behavior (\ref{fig:ll_crp}), this affects the full model convergence. The second striking difference is between the serial and the parallel model likelihoods: while they are close, the parallel model suffers from some delay due to the random table assignment to processors. We observe after 500 iterations a successful Metropolis-Hastings redistribution step of the tables that produces a more efficient configuration for the sampler.
+To further understand the differences between the three proposed samplers, we consider the evolution of the log-likelihood of the models over time when trained on the Russian dataset (Figure~\ref{fig:ll}). The first thing to notice (\ref{fig:ll_base}) is that the serial model takes longer to converge than the baseline model. There is a simple explanation for this: the base distribution is not collapsed anymore, and although the CRP has an identical behavior (\ref{fig:ll_crp}), this affects the full model convergence. The second striking difference is between the serial and the parallel model likelihoods: while they are close, the parallel model suffers from some delay due to the random table assignment to processors. We observe after 500 iterations a successful Metropolis-Hastings redistribution step of the tables that produces a more efficient configuration for the sampler.
 
 \begin{figure}[h]
     \center
